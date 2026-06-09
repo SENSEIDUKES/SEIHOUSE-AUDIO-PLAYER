@@ -16,6 +16,7 @@ import { useAudioPlayer } from "./useAudioPlayer"
 import { ProgressBar } from "./components/ProgressBar"
 import { VolumeControl } from "./components/VolumeControl"
 import { formatTime } from "./utils/formatTime"
+import { trackKey } from "./utils/trackKey"
 import "./audio-player.css"
 
 const DEFAULT_AUDIO =
@@ -191,6 +192,18 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
     const src = currentTrack.audioFile?.trim() ?? ""
 
+    // Build a sourceKey that encodes the playlist position AND track identity,
+    // so the engine resets when switching between playlist tracks that share the
+    // same audio URL (e.g. a demo playlist with a single sample).
+    //
+    // In single-track mode the key is tied to `src` only. Folding title/artist
+    // into it there would make display metadata part of the playback identity:
+    // a consumer replacing placeholder metadata (CMS/localization fetch) while
+    // the audio URL is unchanged would otherwise restart playback from 0.
+    const sourceKey = isPlaylistMode
+        ? `${trackIndex}:${trackKey(currentTrack)}`
+        : src
+
     const advanceTrack = useCallback(() => {
         if (!isPlaylistMode) return
         setTrackIndex((i) => (i < tracks.length - 1 ? i + 1 : 0))
@@ -198,6 +211,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
     const engine = useAudioPlayer({
         src,
+        sourceKey,
         autoPlay: localAutoPlay,
         loop: localLoop,
         onEnded: advanceTrack,

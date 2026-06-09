@@ -55,11 +55,14 @@ const BROKEN = "https://example.com/this-track-does-not-exist.mp3"
 const OG_BG =
     "https://framerusercontent.com/images/GfGkADagM4KEibNcIiRUWlfrR0.jpg"
 
+// All three share the same SAMPLE URL to validate the sourceKey fix:
+// switching between First Light → Midnight Run → Aurora must reset
+// currentTime, duration, and buffered even though the src is unchanged.
 const playlist: Track[] = [
-    { title: "First Light", artist: "SEIHouse", audioFile: SAMPLE, lyrics: "Verse one\nVerse two\nChorus line", purchaseUrl: "https://example.com/buy/first-light" },
-    { title: "Midnight Run", artist: "SEIHouse", audioFile: SAMPLE, lyrics: "Late night city glow\nNeon on the wall", purchaseUrl: "https://example.com/buy/midnight-run" },
-    { title: "Signal Lost", artist: "SEIHouse", audioFile: BROKEN, lyrics: "(unreachable)" },
-    { title: "Aurora", artist: "SEIHouse", audioFile: SAMPLE },
+    { id: "track-1", title: "First Light", artist: "SEIHouse", audioFile: SAMPLE, lyrics: "Verse one\nVerse two\nChorus line", purchaseUrl: "https://example.com/buy/first-light" },
+    { id: "track-2", title: "Midnight Run", artist: "SEIHouse", audioFile: SAMPLE, lyrics: "Late night city glow\nNeon on the wall", purchaseUrl: "https://example.com/buy/midnight-run" },
+    { id: "track-3", title: "Signal Lost", artist: "SEIHouse", audioFile: BROKEN, lyrics: "(unreachable)" },
+    { id: "track-4", title: "Aurora", artist: "SEIHouse", audioFile: SAMPLE },
 ]
 
 /* rgba/hex normalizer: <input type=color> only accepts 7-char hex, but the

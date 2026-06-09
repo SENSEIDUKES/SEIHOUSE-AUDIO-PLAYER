@@ -14,6 +14,7 @@ import type {
     Track,
 } from "../types"
 import { useAudioPlayer } from "../useAudioPlayer"
+import { trackKey } from "../utils/trackKey"
 
 const AudioSessionContext = createContext<SessionEngine | null>(null)
 
@@ -76,12 +77,20 @@ export function AudioSessionProvider({
 
     const currentTrack = currentIndex >= 0 ? queue[currentIndex] ?? null : null
     const src = currentTrack?.audioFile?.trim() ?? ""
+    // Identity key for the engine's reset lifecycle. Encodes the queue position
+    // AND the track identity so switching between two tracks that share the same
+    // audio URL still resets currentTime/duration/buffered/error state — `src`
+    // alone wouldn't change in that case.
+    const sourceKey = currentTrack
+        ? `${currentIndex}:${trackKey(currentTrack)}`
+        : "empty"
 
     // Forward declaration: onEnded needs the latest queue navigation logic.
     const advanceRef = useRef<() => void>(() => {})
 
     const engine = useAudioPlayer({
         src,
+        sourceKey,
         autoPlay,
         loop: repeatMode === "one", // native loop suppresses `ended` (no double-advance)
         onEnded: () => advanceRef.current(),
@@ -149,9 +158,11 @@ export function AudioSessionProvider({
     }
 
     // Start playback for any pending request after a track change. Keyed on
-    // `currentIndex` (the navigation signal) rather than `src`, so it still
-    // fires when two queue entries happen to share the same audio URL. The
-    // engine's own [src] effect is registered earlier in the body, so any
+    // `sourceKey` (which encodes both the queue position AND track identity)
+    // rather than `src` or `currentIndex` alone, so it fires for every logical
+    // track change — including same-URL swaps and same-index queue replacements
+    // that would otherwise strand a pending play. The engine's own
+    // [src, sourceKey] reset effect is registered earlier in the body, so any
     // needed reload has already run; the ref guard keeps this idempotent.
     useEffect(() => {
         if (pendingPlayRef.current) {
@@ -159,7 +170,7 @@ export function AudioSessionProvider({
             if (src) engine.play(true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentIndex])
+    }, [sourceKey])
 
     const setQueue = useCallback(
         (tracks: Track[], startIndex = 0, autoPlayNext = false) => {
@@ -189,10 +200,25 @@ export function AudioSessionProvider({
 
     const playNow = useCallback(
         (track: Track) => {
-            const existing = queue.findIndex(
-                (t) => t.audioFile === track.audioFile && t.title === track.title
-            )
+            const key = trackKey(track)
+            const existing = queue.findIndex((t) => trackKey(t) === key)
             if (existing !== -1) {
+                // A track with the same identity (e.g. a stable id) is already
+                // queued, but its audioFile/metadata may have been refreshed
+                // (re-signed CDN URL, updated title). Replace the stale entry
+                // with the fresh argument so we don't replay old data.
+                if (queue[existing] !== track) {
+                    setQueueState((q) =>
+                        q.map((t, i) => (i === existing ? track : t))
+                    )
+                    if (existing === currentIndex) {
+                        // The active source/sourceKey changes, so the engine
+                        // reloads; arm a deferred play to start the refreshed
+                        // source once it has loaded.
+                        pendingPlayRef.current = true
+                        return
+                    }
+                }
                 goTo(existing, true)
                 return
             }
@@ -203,7 +229,7 @@ export function AudioSessionProvider({
             setQueueState((q) => [...q, track])
             setCurrentIndex(nextIndex)
         },
-        [queue, goTo, engine.isPlaying]
+        [queue, goTo, engine.isPlaying, currentIndex]
     )
 
     const next = useCallback(() => {

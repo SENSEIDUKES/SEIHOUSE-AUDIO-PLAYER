@@ -2,6 +2,12 @@ import type { CSSProperties, ReactNode } from "react"
 
 /** A single playable track. */
 export interface Track {
+    /**
+     * Stable unique identifier. When provided, the engine uses it (instead of
+     * title + audioFile) to distinguish between tracks that share the same URL.
+     * Strongly recommended once you have a real library of tracks.
+     */
+    id?: string
     title: string
     artist: string
     audioFile: string
@@ -67,6 +73,15 @@ export interface AudioPlayerProps extends AudioPlayerTheme {
 export interface UseAudioPlayerOptions {
     /** Current source URL. Changing it loads a new track. */
     src: string
+    /**
+     * Opaque key that identifies the logical track. When two consecutive tracks
+     * share the same `src` URL (e.g. identical audio files in a playlist), the
+     * engine would not detect the track change from `src` alone. Setting a
+     * unique `sourceKey` — e.g. `"${index}:${track.id ?? track.title}"` — forces
+     * the reset/load lifecycle even when the URL is unchanged.
+     * Defaults to `src` when omitted.
+     */
+    sourceKey?: string
     autoPlay?: boolean
     loop?: boolean
     /** Fired when the current track reaches its end. */

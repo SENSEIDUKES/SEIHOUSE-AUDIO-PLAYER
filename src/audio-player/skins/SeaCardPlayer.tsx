@@ -2,6 +2,7 @@ import type { CSSProperties } from "react"
 import type { AudioPlayerTheme, Track } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { ProgressBar } from "../components/ProgressBar"
+import { trackKey } from "../utils/trackKey"
 import { buildThemeVars } from "./themeVars"
 import { PauseIcon, PlayIcon, SpinnerIcon } from "./icons"
 import "./skins.css"
@@ -19,7 +20,7 @@ export interface SeaCardPlayerProps extends AudioPlayerTheme {
 
 /** Identify a track within the queue (matches the session's playNow logic). */
 function sameTrack(a: Track, b: Track): boolean {
-    return a.audioFile === b.audioFile && a.title === b.title
+    return trackKey(a) === trackKey(b)
 }
 
 /**
