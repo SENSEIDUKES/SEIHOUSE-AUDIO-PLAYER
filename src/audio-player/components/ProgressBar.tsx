@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useRef, useState } from "react"
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent } from "react"
 import { formatTime } from "../utils/formatTime"
 
@@ -18,6 +18,10 @@ interface ProgressBarProps {
  * mouse, touch, and pen identically (no separate touch path), which removes the
  * dual-system jank of a native <input type="range">. Keyboard accessibility is
  * re-implemented here since we no longer get it from the native control.
+ *
+ * During a drag, the thumb/fill update locally at full frame rate without
+ * touching the <audio> element. The final seek is applied once on pointer up,
+ * preventing repeated seeks at 60-120Hz from causing audio stutter or decode lag.
  */
 export function ProgressBar({
     currentTime,
@@ -30,6 +34,9 @@ export function ProgressBar({
     onSeekEnd,
 }: ProgressBarProps) {
     const trackRef = useRef<HTMLDivElement>(null)
+    // Local drag position for instant visual feedback during scrub.
+    const dragTimeRef = useRef<number | null>(null)
+    const [dragTime, setDragTime] = useState<number | null>(null)
 
     const ratioFromEvent = useCallback(
         (clientX: number) => {
@@ -44,10 +51,14 @@ export function ProgressBar({
 
     const handlePointerDown = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
-            if (disabled || duration <= 0) return
+            if (disabled || duration <= 0 || event.button !== 0) return
             event.currentTarget.setPointerCapture(event.pointerId)
+            const time = ratioFromEvent(event.clientX) * duration
+            dragTimeRef.current = time
+            setDragTime(time)
             onSeekStart()
-            onSeek(ratioFromEvent(event.clientX) * duration)
+            // Seek immediately on initial click so the audio responds at once.
+            onSeek(time)
         },
         [disabled, duration, onSeek, onSeekStart, ratioFromEvent]
     )
@@ -56,19 +67,28 @@ export function ProgressBar({
         (event: ReactPointerEvent<HTMLDivElement>) => {
             if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
             if (disabled || duration <= 0) return
-            onSeek(ratioFromEvent(event.clientX) * duration)
+            // Visual-only update while dragging — audio gets the final position
+            // on pointer up to avoid high-frequency seeks causing stutter.
+            const time = ratioFromEvent(event.clientX) * duration
+            dragTimeRef.current = time
+            setDragTime(time)
         },
-        [disabled, duration, onSeek, ratioFromEvent]
+        [disabled, duration, ratioFromEvent]
     )
 
     const handlePointerUp = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
             if (event.currentTarget.hasPointerCapture(event.pointerId)) {
                 event.currentTarget.releasePointerCapture(event.pointerId)
+                if (dragTimeRef.current !== null) {
+                    onSeek(dragTimeRef.current)
+                }
             }
+            dragTimeRef.current = null
+            setDragTime(null)
             onSeekEnd()
         },
-        [onSeekEnd]
+        [onSeek, onSeekEnd]
     )
 
     const handleKeyDown = useCallback(
@@ -100,7 +120,9 @@ export function ProgressBar({
         [currentTime, disabled, duration, onSeek]
     )
 
-    const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0
+    // Show local drag position while scrubbing; fall back to engine time otherwise.
+    const displayTime = dragTime !== null ? dragTime : currentTime
+    const progressPct = duration > 0 ? (displayTime / duration) * 100 : 0
     const bufferedPct = duration > 0 ? (buffered / duration) * 100 : 0
 
     return (
@@ -114,8 +136,8 @@ export function ProgressBar({
             }
             aria-valuemin={0}
             aria-valuemax={Math.floor(duration)}
-            aria-valuenow={Math.floor(currentTime)}
-            aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+            aria-valuenow={Math.floor(displayTime)}
+            aria-valuetext={`${formatTime(displayTime)} of ${formatTime(duration)}`}
             aria-disabled={disabled}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}

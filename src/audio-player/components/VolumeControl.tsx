@@ -34,7 +34,7 @@ export function VolumeControl({
 
     const handlePointerDown = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
-            if (disabled) return
+            if (disabled || event.button !== 0) return
             event.currentTarget.setPointerCapture(event.pointerId)
             onVolumeChange(ratioFromEvent(event.clientX))
         },
@@ -67,6 +67,10 @@ export function VolumeControl({
                 next = volume + 0.05
             } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
                 next = volume - 0.05
+            } else if (event.key === "Home") {
+                next = 0
+            } else if (event.key === "End") {
+                next = 1
             } else {
                 return
             }

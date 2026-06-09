@@ -206,8 +206,26 @@ export function useAudioPlayer(
 
         const readBuffered = () => {
             try {
-                if (audio.buffered.length > 0) {
-                    setBuffered(audio.buffered.end(audio.buffered.length - 1))
+                const length = audio.buffered.length
+                if (length > 0) {
+                    // Find the buffered range that contains currentTime.
+                    // After a seek the browser can have multiple non-contiguous
+                    // ranges; always using the last range would falsely show the
+                    // bar as fully buffered.
+                    const ct = audio.currentTime
+                    let active: number | null = null
+                    for (let i = 0; i < length; i++) {
+                        if (
+                            ct >= audio.buffered.start(i) &&
+                            ct <= audio.buffered.end(i)
+                        ) {
+                            active = audio.buffered.end(i)
+                            break
+                        }
+                    }
+                    setBuffered(
+                        active !== null ? active : audio.buffered.end(length - 1)
+                    )
                 }
             } catch {
                 // buffered can throw before any data is loaded; ignore.
@@ -249,6 +267,9 @@ export function useAudioPlayer(
             isPlayingRef.current = false
             setIsPlaying(false)
             stopLoop()
+            // Snap to exact duration so the progress bar reaches 100% even when
+            // the rAF loop's 100ms throttle left it a frame short.
+            setCurrentTime(audio.duration || audio.currentTime)
             onEndedRef.current?.()
         }
         const handleLoadedMetadata = () => {
@@ -302,6 +323,13 @@ export function useAudioPlayer(
         audio.addEventListener("error", handleError)
         audio.addEventListener("loadstart", handleLoadStart)
 
+        // If the source was already cached the loadedmetadata event fires before
+        // the effect runs. Catch that case by reading readyState synchronously.
+        if (audio.readyState >= 1) {
+            handleLoadedMetadata()
+            readBuffered()
+        }
+
         return () => {
             stopLoop()
             audio.removeEventListener("play", handlePlay)
@@ -334,16 +362,23 @@ export function useAudioPlayer(
         clearPendingPlay()
         stopLoop()
         audio.pause()
-        audio.currentTime = 0
-        currentTimeRef.current = 0
-        setSeeking(false)
-        setCurrentTime(0)
-        setDuration(0)
-        setBuffered(0)
-        setIsPlaying(false)
-        setHasError(false)
-        setErrorMessage("")
-        setIsBuffering(false)
+
+        // On the first mount, don't reset state or call audio.load() when the
+        // source is already loaded/loading from a cache hit. Resetting would
+        // discard the browser's preloaded data and make the readyState >= 1
+        // synchronous check in the event-listener effect useless.
+        if (!isFirstLoad) {
+            audio.currentTime = 0
+            currentTimeRef.current = 0
+            setSeeking(false)
+            setCurrentTime(0)
+            setDuration(0)
+            setBuffered(0)
+            setIsPlaying(false)
+            setHasError(false)
+            setErrorMessage("")
+            setIsBuffering(false)
+        }
 
         if (!hasAudio) {
             audio.removeAttribute("src")
@@ -351,7 +386,9 @@ export function useAudioPlayer(
             return
         }
 
-        audio.load()
+        if (!isFirstLoad) {
+            audio.load()
+        }
         if (shouldPlay) {
             // Don't surface an error toast for autoplay blocked on first load.
             play(!isFirstLoad)
