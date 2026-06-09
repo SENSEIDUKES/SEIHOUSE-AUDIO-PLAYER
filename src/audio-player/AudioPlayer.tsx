@@ -11,6 +11,7 @@ import { useAudioPlayer } from "./useAudioPlayer"
 import { ProgressBar } from "./components/ProgressBar"
 import { VolumeControl } from "./components/VolumeControl"
 import { formatTime } from "./utils/formatTime"
+import { trackKey } from "./utils/trackKey"
 import "./audio-player.css"
 
 const DEFAULT_AUDIO =
@@ -81,12 +82,19 @@ export function AudioPlayer(props: AudioPlayerProps) {
 
     const src = currentTrack.audioFile?.trim() ?? ""
 
+    // Build a sourceKey that encodes the playlist position AND track identity.
+    // This ensures the engine resets correctly when switching between tracks
+    // that share the same audio URL (e.g. a demo playlist with a single sample).
+    const sourceKey = isPlaylistMode
+        ? `${trackIndex}:${trackKey(currentTrack)}`
+        : trackKey(currentTrack)
+
     const advanceTrack = useCallback(() => {
         if (!isPlaylistMode) return
         setTrackIndex((i) => (i < tracks.length - 1 ? i + 1 : 0))
     }, [isPlaylistMode, tracks.length])
 
-    const engine = useAudioPlayer({ src, autoPlay, loop, onEnded: advanceTrack })
+    const engine = useAudioPlayer({ src, sourceKey, autoPlay, loop, onEnded: advanceTrack })
 
     const {
         audioRef,

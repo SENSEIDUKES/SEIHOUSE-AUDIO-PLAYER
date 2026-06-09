@@ -6,10 +6,14 @@ import type { Track } from "../audio-player"
 const SAMPLE =
     "https://framerusercontent.com/assets/8w3IUatLX9a5JVJ6XPCVuHi94.mp3"
 
+// All three share the same SAMPLE URL to validate the sourceKey fix:
+// switching between First Light → Midnight Run → Aurora must reset
+// currentTime, duration, and buffered even though the src is unchanged.
 const playlist: Track[] = [
-    { title: "First Track", artist: "SEIHouse", audioFile: SAMPLE, lyrics: "Line one\nLine two" },
-    { title: "Second Track", artist: "SEIHouse", audioFile: SAMPLE },
-    { title: "Broken Track", artist: "SEIHouse", audioFile: "https://example.com/does-not-exist.mp3" },
+    { id: "track-1", title: "First Light", artist: "SEIHouse", audioFile: SAMPLE, lyrics: "Verse one\nVerse two" },
+    { id: "track-2", title: "Midnight Run", artist: "SEIHouse", audioFile: SAMPLE },
+    { id: "track-3", title: "Aurora", artist: "SEIHouse", audioFile: SAMPLE },
+    { id: "track-4", title: "Broken Source", artist: "SEIHouse", audioFile: "https://example.com/does-not-exist.mp3" },
 ]
 
 function Demo() {

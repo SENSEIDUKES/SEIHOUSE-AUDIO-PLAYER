@@ -17,7 +17,7 @@ import type { AudioPlayerEngine, UseAudioPlayerOptions } from "./types"
 export function useAudioPlayer(
     options: UseAudioPlayerOptions
 ): AudioPlayerEngine {
-    const { src, autoPlay = false, loop = false, onEnded } = options
+    const { src, sourceKey = src, autoPlay = false, loop = false, onEnded } = options
 
     const audioRef = useRef<HTMLAudioElement>(null)
     const currentTimeRef = useRef(0)
@@ -394,7 +394,7 @@ export function useAudioPlayer(
             play(!isFirstLoad)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [src])
+    }, [src, sourceKey])
 
     // Keep the element's volume/loop in sync with state on mount + changes.
     useEffect(() => {
