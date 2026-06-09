@@ -1,0 +1,367 @@
+/* Session-driven skins. Shared control styling (ap-btn, ap-icon-btn,
+   ap-progress, ap-volume, ap-eq, ap-banner, ap-tap, ...) comes from the base
+   stylesheet; we import it so a page that uses only skins still gets it.
+   Each skin sets the same --ap-* theme tokens on its root (see themeVars.ts),
+   so the reused ProgressBar / VolumeControl inherit the right colors. */
+@import "../audio-player.css";
+
+/* Make a reused ProgressBar fill whatever flex container a skin puts it in
+   (its inner track is absolutely positioned, so the host must supply width). */
+.ap-vr__progress,
+.ap-sb__scrub,
+.ap-sea__progress {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+.ap-vr__progress .ap-progress,
+.ap-sb__scrub .ap-progress,
+.ap-sea__progress .ap-progress {
+    flex: 1;
+}
+
+/* Active state for shuffle / repeat toggles. */
+.ap-fc__toggle--on {
+    color: var(--ap-accent);
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ----------------------------- Full card ----------------------------- */
+.ap-fc {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 24px;
+    border-radius: 16px;
+    background-color: var(--ap-bg);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.1),
+        0 1px 4px rgba(0, 0, 0, 0.08);
+    color: var(--ap-text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.ap-fc *,
+.ap-fc *::before,
+.ap-fc *::after {
+    box-sizing: border-box;
+}
+.ap-fc__counter {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.5;
+}
+.ap-fc__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    text-align: center;
+}
+.ap-fc__title {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-fc__artist {
+    font-size: 15px;
+    font-weight: 500;
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ----------------------------- Vault row ----------------------------- */
+.ap-vr {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background-color: var(--ap-bg);
+    color: var(--ap-text);
+    border: 1px solid transparent;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.ap-vr *,
+.ap-vr *::before,
+.ap-vr *::after {
+    box-sizing: border-box;
+}
+.ap-vr--active {
+    border-color: var(--ap-accent);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+.ap-vr__num {
+    min-width: 20px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.5;
+}
+.ap-vr__play {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+.ap-vr__meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.ap-vr__title {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-vr__artist {
+    font-size: 12px;
+    opacity: 0.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-vr__time {
+    font-size: 12px;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+/* ----------------------------- Sticky bottom bar ----------------------------- */
+.ap-sb {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    padding: 12px 20px;
+    background-color: rgba(18, 18, 24, 0.92);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--ap-text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.ap-sb *,
+.ap-sb *::before,
+.ap-sb *::after {
+    box-sizing: border-box;
+}
+.ap-sb--fixed {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+}
+.ap-sb__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    width: 180px;
+    flex-shrink: 0;
+}
+.ap-sb__title {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-sb__artist {
+    font-size: 12px;
+    opacity: 0.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-sb__center {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+}
+.ap-sb__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.ap-sb__play {
+    width: 40px;
+    height: 40px;
+}
+.ap-sb__scrub {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+.ap-sb__t {
+    font-size: 11px;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    min-width: 34px;
+    text-align: center;
+}
+.ap-sb__volume {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ----------------------------- Mini sidebar widget ----------------------------- */
+.ap-ms {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: var(--ap-bg);
+    color: var(--ap-text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.ap-ms *,
+.ap-ms *::before,
+.ap-ms *::after {
+    box-sizing: border-box;
+}
+.ap-ms__art {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.ap-ms__art--playing {
+    animation: ap-pulse 3s ease-in-out infinite;
+}
+.ap-ms__meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.ap-ms__title {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-ms__artist {
+    font-size: 12px;
+    opacity: 0.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-ms__play {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+/* ----------------------------- SEA embed card ----------------------------- */
+.ap-sea {
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    background-color: var(--ap-bg);
+    color: var(--ap-text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.ap-sea *,
+.ap-sea *::before,
+.ap-sea *::after {
+    box-sizing: border-box;
+}
+.ap-sea--active {
+    box-shadow: 0 0 0 2px var(--ap-accent);
+}
+.ap-sea__art {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background-size: cover;
+    background-position: center;
+}
+.ap-sea__play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
+}
+.ap-sea__play.ap-tap:active:not(:disabled) {
+    transform: translate(-50%, -50%) scale(0.92);
+}
+.ap-sea__tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+}
+.ap-sea__body {
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.ap-sea__title {
+    font-size: 15px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-sea__artist {
+    font-size: 13px;
+    opacity: 0.65;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-sea__progress {
+    margin-top: 6px;
+}
+
+@media (max-width: 720px) {
+    .ap-sb__meta {
+        width: 120px;
+    }
+    .ap-sb__volume {
+        display: none;
+    }
+}

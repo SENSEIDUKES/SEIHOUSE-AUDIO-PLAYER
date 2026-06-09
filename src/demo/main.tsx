@@ -1,7 +1,15 @@
 import { StrictMode, useState } from "react"
 import type { CSSProperties, ReactNode } from "react"
 import { createRoot } from "react-dom/client"
-import { AudioPlayer } from "../audio-player"
+import {
+    AudioPlayer,
+    AudioSessionProvider,
+    FullCardPlayer,
+    VaultRowPlayer,
+    StickyBottomPlayer,
+    MiniSidebarPlayer,
+    SeaCardPlayer,
+} from "../audio-player"
 import type { AudioPlayerProps, Track } from "../audio-player"
 import "./audio-player-lab.css"
 
@@ -661,6 +669,85 @@ function LiveCustomizer() {
     )
 }
 
+/* ----------------------------- Global session (one engine, many skins) ----------------------------- */
+const SEA_THEME = {
+    accentColor: "#7C5CFF",
+    progressColor: "#7C5CFF",
+    trackColor: "rgba(124,92,255,0.25)",
+    playIconColor: "#0b0b12",
+    textColor: "#FFFFFF",
+    backgroundColor: "rgba(20,20,28,0.6)",
+}
+
+const SEA_ARTS = [
+    "linear-gradient(135deg,#FF7AC6,#7C5CFF)",
+    "linear-gradient(135deg,#22D3A6,#0EA5E9)",
+    "linear-gradient(135deg,#F59E0B,#EF4444)",
+    "linear-gradient(135deg,#A855F7,#EC4899)",
+]
+
+/* Every skin below shares ONE AudioSessionProvider — and therefore one <audio>
+   element and one queue. Pressing play / seeking / switching tracks in any skin
+   updates all the others live. */
+function GlobalSessionSection() {
+    return (
+        <section className="lab-section">
+            <h2 className="lab-section__title">
+                8. Global session — one source, many skins
+                <small>Shared engine</small>
+            </h2>
+            <p className="lab-section__desc">
+                All of the players below read from a single{" "}
+                <code>AudioSessionProvider</code>. There is exactly one{" "}
+                <code>&lt;audio&gt;</code> element and one queue, so playing,
+                pausing, seeking, or switching tracks in any skin instantly
+                syncs to every other skin. Click a Vault row or a SEA card to
+                jump the whole session to that track.
+            </p>
+            <div className="lab-section__grid">
+                <AudioSessionProvider initialQueue={playlist}>
+                    <div className="lab-session">
+                        <div className="lab-session__main">
+                            <FullCardPlayer {...SEA_THEME} />
+                            <div className="lab-session__sea">
+                                {playlist.map((t, i) => (
+                                    <SeaCardPlayer
+                                        key={`${t.title}-${i}`}
+                                        track={t}
+                                        art={SEA_ARTS[i % SEA_ARTS.length]}
+                                        tag={t.audioFile === BROKEN ? "broken" : "SEA"}
+                                        {...SEA_THEME}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <aside className="lab-session__side">
+                            <h4 className="lab-app__sidebar-title">Now playing</h4>
+                            <MiniSidebarPlayer {...SEA_THEME} />
+                            <h4 className="lab-app__sidebar-title">The Vault</h4>
+                            <div className="lab-session__vault">
+                                {playlist.map((t, i) => (
+                                    <VaultRowPlayer
+                                        key={`${t.title}-${i}`}
+                                        track={t}
+                                        number={i + 1}
+                                        {...SEA_THEME}
+                                    />
+                                ))}
+                            </div>
+                        </aside>
+                    </div>
+                    {/* fixed={false} so the bar previews inline instead of
+                        covering the whole lab page. */}
+                    <div className="lab-session__sticky">
+                        <StickyBottomPlayer fixed={false} {...SEA_THEME} />
+                    </div>
+                </AudioSessionProvider>
+            </div>
+        </section>
+    )
+}
+
 /* ----------------------------- Lab page ----------------------------- */
 function Lab() {
     return (
@@ -911,6 +998,8 @@ function Lab() {
                     </div>
                 </div>
             </section>
+
+            <GlobalSessionSection />
 
             <footer className="lab-footer">
                 <p>Tip: focus a player and use <kbd>Space</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> <kbd>N</kbd> <kbd>P</kbd> for playback shortcuts scoped to the player root.</p>
