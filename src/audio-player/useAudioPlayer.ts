@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { AudioPlayerEngine, UseAudioPlayerOptions } from "./types"
+import type { AudioPlayerEngine, BufferedRange, UseAudioPlayerOptions } from "./types"
 
 /**
  * Headless audio engine. Owns a single hidden <audio> element and is the sole
@@ -12,7 +12,11 @@ import type { AudioPlayerEngine, UseAudioPlayerOptions } from "./types"
  * - When `src` changes, playback continues automatically if it was playing
  *   (track-change UX). The very first load only plays when `autoPlay` is set.
  * - Browsers block audible autoplay without a user gesture; `autoPlay` is a
- *   best-effort attempt, not a guarantee.
+ *   best-effort attempt, not a guarantee. When blocked, the engine exposes an
+ *   `autoplayBlocked` flag so the UI can prompt the user for a tap.
+ * - A monotonic `playbackToken` is bumped on every source / play-attempt
+ *   boundary. Async callbacks captured before the swap check the token and
+ *   no-op if it has changed, which removes the rapid-track-skip race.
  */
 export function useAudioPlayer(
     options: UseAudioPlayerOptions
@@ -29,19 +33,40 @@ export function useAudioPlayer(
     const previousVolumeRef = useRef(1)
     const onEndedRef = useRef(onEnded)
     onEndedRef.current = onEnded
+    /**
+     * Bumped on any operation that should invalidate in-flight async audio
+     * callbacks (src change, retry, loadAndPlay). Comparing the captured token
+     * to the latest token is how we keep stale `play().then/.catch` from
+     * clobbering state after a fast track skip.
+     */
+    const playbackTokenRef = useRef(0)
+    /**
+     * Stores the last token for which we already raised the autoplay-blocked
+     * affordance, so we don't spam a state update for every rejected promise.
+     */
+    const lastAutoplayBlockedTokenRef = useRef(-1)
 
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [buffered, setBuffered] = useState(0)
+    const [bufferedRanges, setBufferedRanges] = useState<BufferedRange[]>([])
     const [volume, setVolumeState] = useState(1)
     const [isMuted, setIsMuted] = useState(false)
     const [isSeeking, setIsSeekingState] = useState(false)
     const [isBuffering, setIsBuffering] = useState(false)
     const [hasError, setHasError] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
+    const [autoplayBlocked, setAutoplayBlocked] = useState(false)
+    const volumeUnsupportedRef = useRef(false)
+    const [volumeUnsupported, setVolumeUnsupported] = useState(false)
 
     const hasAudio = src.trim().length > 0
+
+    const bumpToken = useCallback(() => {
+        playbackTokenRef.current += 1
+        return playbackTokenRef.current
+    }, [])
 
     const clearPendingPlay = useCallback(() => {
         if (playPromiseRef.current) {
@@ -69,25 +94,51 @@ export function useAudioPlayer(
             const audio = audioRef.current
             if (!audio || !hasAudio) return
 
+            const token = bumpToken()
             clearPendingPlay()
             setHasError(false)
             setErrorMessage("")
 
-            const playPromise = audio.play()
+            let playPromise: Promise<void>
+            try {
+                playPromise = audio.play()
+            } catch {
+                if (playbackTokenRef.current !== token) return
+                if (reportError) {
+                    setHasError(true)
+                    setErrorMessage("Playback failed. Please try again.")
+                }
+                return
+            }
             playPromiseRef.current = playPromise
 
             playPromise
                 .then(() => {
+                    if (playbackTokenRef.current !== token) return
                     if (playPromiseRef.current === playPromise) {
                         playPromiseRef.current = null
                     }
                 })
                 .catch((error: unknown) => {
+                    if (playbackTokenRef.current !== token) return
                     if (playPromiseRef.current === playPromise) {
                         playPromiseRef.current = null
                     }
                     const name = error instanceof Error ? error.name : ""
                     if (name === "AbortError") return
+
+                    // Browsers throw NotAllowedError when autoplay is blocked.
+                    // Surface this through a dedicated UI flag rather than the
+                    // generic error banner.
+                    if (name === "NotAllowedError") {
+                        if (lastAutoplayBlockedTokenRef.current !== token) {
+                            lastAutoplayBlockedTokenRef.current = token
+                            setAutoplayBlocked(true)
+                        }
+                        setIsPlaying(false)
+                        setIsBuffering(false)
+                        return
+                    }
 
                     setIsPlaying(false)
                     setIsBuffering(false)
@@ -101,7 +152,7 @@ export function useAudioPlayer(
                     }
                 })
         },
-        [clearPendingPlay, hasAudio]
+        [bumpToken, clearPendingPlay, hasAudio]
     )
 
     const pause = useCallback(() => {
@@ -110,18 +161,21 @@ export function useAudioPlayer(
 
         const pending = playPromiseRef.current
         if (pending) {
+            // Bump the token so the in-flight play() does not flip state back
+            // to "playing" once the browser finally resolves it.
+            bumpToken()
             pending
                 .catch(() => {})
                 .finally(() => {
-                    audio.pause()
                     if (playPromiseRef.current === pending) {
                         playPromiseRef.current = null
                     }
+                    audio.pause()
                 })
             return
         }
         audio.pause()
-    }, [])
+    }, [bumpToken])
 
     const toggle = useCallback(() => {
         if (!hasAudio) return
@@ -156,7 +210,18 @@ export function useAudioPlayer(
         previousVolumeRef.current = next > 0 ? next : previousVolumeRef.current
         setVolumeState(next)
         if (audio) {
-            audio.volume = next
+            if (!volumeUnsupportedRef.current && next !== 0) {
+                // iOS Safari (and a few other mobile browsers) ignore
+                // programmatic volume. Detect this once and surface it to the
+                // UI rather than silently letting the slider appear to work.
+                audio.volume = next
+                if (Math.abs(audio.volume - next) > 0.001) {
+                    volumeUnsupportedRef.current = true
+                    setVolumeUnsupported(true)
+                }
+            } else {
+                audio.volume = next
+            }
             // Dragging the slider above zero implicitly unmutes.
             if (next > 0 && audio.muted) {
                 audio.muted = false
@@ -182,20 +247,27 @@ export function useAudioPlayer(
     const retry = useCallback(() => {
         const audio = audioRef.current
         if (!audio || !hasAudio) return
+        bumpToken()
         clearPendingPlay()
         setHasError(false)
         setErrorMessage("")
+        setAutoplayBlocked(false)
         setIsBuffering(true)
         audio.load()
         play(true)
-    }, [clearPendingPlay, hasAudio, play])
+    }, [bumpToken, clearPendingPlay, hasAudio, play])
 
     const loadAndPlay = useCallback(() => {
         const audio = audioRef.current
         if (!audio || !hasAudio) return
+        bumpToken()
         audio.load()
         play(true)
-    }, [hasAudio, play])
+    }, [bumpToken, hasAudio, play])
+
+    const dismissAutoplayBlocked = useCallback(() => {
+        setAutoplayBlocked(false)
+    }, [])
 
     // Wire up all <audio> events. Single rAF loop owns currentTime while playing.
     useEffect(() => {
@@ -208,24 +280,21 @@ export function useAudioPlayer(
             try {
                 const length = audio.buffered.length
                 if (length > 0) {
-                    // Find the buffered range that contains currentTime.
-                    // After a seek the browser can have multiple non-contiguous
-                    // ranges; always using the last range would falsely show the
-                    // bar as fully buffered.
-                    const ct = audio.currentTime
-                    let active: number | null = null
+                    // Collect all ranges so the UI can render multi-segment
+                    // buffers (e.g. after seeks that leave gaps).
+                    const ranges: BufferedRange[] = []
+                    let furthest = 0
                     for (let i = 0; i < length; i++) {
-                        if (
-                            ct >= audio.buffered.start(i) &&
-                            ct <= audio.buffered.end(i)
-                        ) {
-                            active = audio.buffered.end(i)
-                            break
-                        }
+                        const start = audio.buffered.start(i)
+                        const end = audio.buffered.end(i)
+                        ranges.push({ start, end })
+                        if (end > furthest) furthest = end
                     }
-                    setBuffered(
-                        active !== null ? active : audio.buffered.end(length - 1)
-                    )
+                    setBufferedRanges(ranges)
+                    setBuffered(furthest)
+                } else {
+                    setBufferedRanges([])
+                    setBuffered(0)
                 }
             } catch {
                 // buffered can throw before any data is loaded; ignore.
@@ -235,7 +304,11 @@ export function useAudioPlayer(
         const loop = (timestamp: number) => {
             if (!isSeekingRef.current) {
                 currentTimeRef.current = audio.currentTime
-                if (timestamp - lastUpdate >= 100) {
+                // Update state once per ~16ms (one frame). The previous 100ms
+                // throttle caused visible stutter on 120Hz displays; the audio
+                // element's `timeupdate` event still fires at 4Hz on most
+                // browsers, so we drive smooth UI from rAF instead.
+                if (timestamp - lastUpdate >= 16) {
                     setCurrentTime(audio.currentTime)
                     lastUpdate = timestamp
                 }
@@ -251,6 +324,7 @@ export function useAudioPlayer(
             isPlayingRef.current = true
             setIsPlaying(true)
             setIsBuffering(false)
+            setAutoplayBlocked(false)
             if (animationFrameRef.current === null) {
                 animationFrameRef.current = requestAnimationFrame(loop)
             }
@@ -268,7 +342,7 @@ export function useAudioPlayer(
             setIsPlaying(false)
             stopLoop()
             // Snap to exact duration so the progress bar reaches 100% even when
-            // the rAF loop's 100ms throttle left it a frame short.
+            // the rAF loop's throttle left it a frame short.
             setCurrentTime(audio.duration || audio.currentTime)
             onEndedRef.current?.()
         }
@@ -359,6 +433,9 @@ export function useAudioPlayer(
         const wasPlaying = isPlayingRef.current
         const shouldPlay = isFirstLoad ? autoPlay : wasPlaying
 
+        // Bump the token up front so any in-flight play() / error handlers
+        // from the previous source become no-ops.
+        const token = bumpToken()
         clearPendingPlay()
         stopLoop()
         audio.pause()
@@ -374,10 +451,12 @@ export function useAudioPlayer(
             setCurrentTime(0)
             setDuration(0)
             setBuffered(0)
+            setBufferedRanges([])
             setIsPlaying(false)
             setHasError(false)
             setErrorMessage("")
             setIsBuffering(false)
+            setAutoplayBlocked(false)
         }
 
         if (!hasAudio) {
@@ -390,8 +469,56 @@ export function useAudioPlayer(
             audio.load()
         }
         if (shouldPlay) {
-            // Don't surface an error toast for autoplay blocked on first load.
-            play(!isFirstLoad)
+            // Don't surface an error toast for autoplay blocked on first load;
+            // the autoplay-blocked affordance handles that case.
+            if (isFirstLoad) {
+                let playPromise: Promise<void> | null
+                try {
+                    playPromise = audio.play()
+                } catch {
+                    return
+                }
+                if (playPromise) {
+                    playPromiseRef.current = playPromise
+                    playPromise
+                        .then(() => {
+                            if (playbackTokenRef.current !== token) return
+                            if (playPromiseRef.current === playPromise) {
+                                playPromiseRef.current = null
+                            }
+                        })
+                        .catch((error: unknown) => {
+                            if (playbackTokenRef.current !== token) return
+                            if (playPromiseRef.current === playPromise) {
+                                playPromiseRef.current = null
+                            }
+                            const name =
+                                error instanceof Error ? error.name : ""
+                            if (name === "AbortError") return
+                            if (name === "NotAllowedError") {
+                                if (
+                                    lastAutoplayBlockedTokenRef.current !==
+                                    token
+                                ) {
+                                    lastAutoplayBlockedTokenRef.current =
+                                        token
+                                    setAutoplayBlocked(true)
+                                }
+                                setIsPlaying(false)
+                                setIsBuffering(false)
+                                return
+                            }
+                            setHasError(true)
+                            setErrorMessage(
+                                name === "NotSupportedError"
+                                    ? "Audio file not found or format not supported."
+                                    : "Playback failed. Please try again."
+                            )
+                        })
+                }
+            } else {
+                play(!isFirstLoad)
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [src])
@@ -413,6 +540,7 @@ export function useAudioPlayer(
         currentTime,
         duration,
         buffered,
+        bufferedRanges,
         volume,
         isMuted,
         isBuffering,
@@ -420,6 +548,8 @@ export function useAudioPlayer(
         hasError,
         errorMessage,
         hasAudio,
+        volumeUnsupported,
+        autoplayBlocked,
         play,
         pause,
         toggle,
@@ -430,5 +560,6 @@ export function useAudioPlayer(
         toggleMute,
         retry,
         loadAndPlay,
+        dismissAutoplayBlocked,
     }
 }

@@ -1,11 +1,16 @@
 import {
+    Component,
     useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
 } from "react"
-import type { CSSProperties, KeyboardEvent } from "react"
+import type {
+    CSSProperties,
+    KeyboardEvent,
+    ReactNode,
+} from "react"
 import type { AudioPlayerProps, Track } from "./types"
 import { useAudioPlayer } from "./useAudioPlayer"
 import { ProgressBar } from "./components/ProgressBar"
@@ -16,7 +21,64 @@ import "./audio-player.css"
 const DEFAULT_AUDIO =
     "https://framerusercontent.com/assets/8w3IUatLX9a5JVJ6XPCVuHi94.mp3"
 
+/**
+ * React error boundary wrapping the player body. Keeps an unexpected render
+ * error in a child component (slider, menu, etc.) from crashing the entire
+ * host app. The fallback surfaces a minimal message and a way to retry the
+ * render attempt.
+ */
+class AudioPlayerErrorBoundary extends Component<
+    { children: ReactNode; fallbackTitle: string },
+    { error: Error | null }
+> {
+    state = { error: null as Error | null }
+
+    static getDerivedStateFromError(error: Error) {
+        return { error }
+    }
+
+    componentDidCatch(error: Error) {
+        // eslint-disable-next-line no-console
+        console.error("[AudioPlayer] render error:", error)
+    }
+
+    handleReset = () => {
+        this.setState({ error: null })
+    }
+
+    render() {
+        if (this.state.error) {
+            return (
+                <div className="ap-error-boundary" role="alert">
+                    <p className="ap-error-boundary__title">
+                        {this.props.fallbackTitle}
+                    </p>
+                    <p className="ap-error-boundary__message">
+                        {this.state.error.message}
+                    </p>
+                    <button
+                        type="button"
+                        className="ap-retry-btn"
+                        onClick={this.handleReset}
+                    >
+                        Retry
+                    </button>
+                </div>
+            )
+        }
+        return this.props.children
+    }
+}
+
 export function AudioPlayer(props: AudioPlayerProps) {
+    return (
+        <AudioPlayerErrorBoundary fallbackTitle="Audio player failed to render">
+            <AudioPlayerInner {...props} />
+        </AudioPlayerErrorBoundary>
+    )
+}
+
+function AudioPlayerInner(props: AudioPlayerProps) {
     const {
         tracks = [],
         audioFile = DEFAULT_AUDIO,
@@ -53,6 +115,8 @@ export function AudioPlayer(props: AudioPlayerProps) {
     const [localLoop, setLocalLoop] = useState(loop)
     const rootRef = useRef<HTMLDivElement>(null)
     const menuRef = useRef<HTMLDivElement>(null)
+    const menuButtonRef = useRef<HTMLButtonElement>(null)
+    const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([])
     const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
@@ -71,7 +135,9 @@ export function AudioPlayer(props: AudioPlayerProps) {
         setLocalLoop(loop)
     }, [loop])
 
-    // Close the ellipsis menu when clicking outside the player.
+    // Close the ellipsis menu when clicking outside the player. Escape closes
+    // the menu and returns focus to the menu button so keyboard users land
+    // somewhere predictable.
     useEffect(() => {
         if (!menuOpen) return
         const handleClick = (event: MouseEvent) => {
@@ -83,7 +149,11 @@ export function AudioPlayer(props: AudioPlayerProps) {
             }
         }
         const handleKey = (event: globalThis.KeyboardEvent) => {
-            if (event.key === "Escape") setMenuOpen(false)
+            if (event.key === "Escape") {
+                setMenuOpen(false)
+                // Return focus to the trigger so keyboard users don't get lost.
+                menuButtonRef.current?.focus()
+            }
         }
         document.addEventListener("mousedown", handleClick)
         document.addEventListener("keydown", handleKey)
@@ -102,6 +172,12 @@ export function AudioPlayer(props: AudioPlayerProps) {
     const currentTrack: Track = useMemo(() => {
         if (isPlaylistMode && tracks[trackIndex]) return tracks[trackIndex]
         return { title, artist, audioFile, purchaseUrl, lyrics }
+        // Derive from the *identity* of the active track. Recreating the object
+        // on every render (because of prop reference changes) used to thrash
+        // `currentTime` in the engine. The listed deps are the ones that
+        // actually change the active track in playlist mode, plus the single-
+        // track props.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         isPlaylistMode,
         tracks,
@@ -140,6 +216,8 @@ export function AudioPlayer(props: AudioPlayerProps) {
         hasError,
         errorMessage,
         hasAudio,
+        volumeUnsupported,
+        autoplayBlocked,
         toggle,
         seek,
         seekBy,
@@ -147,6 +225,7 @@ export function AudioPlayer(props: AudioPlayerProps) {
         setVolume,
         toggleMute,
         retry,
+        dismissAutoplayBlocked,
     } = engine
 
     const goToTrack = useCallback(
@@ -168,7 +247,73 @@ export function AudioPlayer(props: AudioPlayerProps) {
     )
 
     const toggleLyrics = useCallback(() => setShowLyrics((v) => !v), [])
-    const toggleMenu = useCallback(() => setMenuOpen((v) => !v), [])
+    const toggleMenu = useCallback(() => {
+        setMenuOpen((v) => {
+            // When opening, reset focus to the first menu item.
+            if (!v) {
+                // Defer until after the items render.
+                requestAnimationFrame(() => {
+                    menuItemRefs.current[0]?.focus()
+                })
+            }
+            return !v
+        })
+    }, [])
+
+    const focusMenuItem = useCallback(
+        (delta: number) => {
+            const items = menuItemRefs.current.filter(
+                (el): el is HTMLButtonElement => el !== null
+            )
+            if (items.length === 0) return
+            const activeIndex = items.findIndex(
+                (el) => el === document.activeElement
+            )
+            const start = activeIndex === -1 ? 0 : activeIndex
+            const next =
+                (start + delta + items.length) % items.length
+            items[next]?.focus()
+        },
+        []
+    )
+
+    const handleMenuKeyDown = useCallback(
+        (event: KeyboardEvent<HTMLDivElement>) => {
+            switch (event.key) {
+                case "ArrowDown":
+                    event.preventDefault()
+                    focusMenuItem(1)
+                    break
+                case "ArrowUp":
+                    event.preventDefault()
+                    focusMenuItem(-1)
+                    break
+                case "Home":
+                    event.preventDefault()
+                    menuItemRefs.current[0]?.focus()
+                    break
+                case "End":
+                    event.preventDefault()
+                    {
+                        const last =
+                            menuItemRefs.current.filter(
+                                (el): el is HTMLButtonElement => el !== null
+                            )
+                        last[last.length - 1]?.focus()
+                    }
+                    break
+                case "Tab":
+                    // Trap focus inside the open menu.
+                    event.preventDefault()
+                    focusMenuItem(event.shiftKey ? -1 : 1)
+                    break
+                default:
+                    break
+            }
+        },
+        [focusMenuItem]
+    )
+
     const handleAutoPlayToggle = useCallback(
         () => setLocalAutoPlay((v) => !v),
         []
@@ -229,24 +374,66 @@ export function AudioPlayer(props: AudioPlayerProps) {
         [isPlaylistMode, nextTrack, previousTrack, seekBy, toggle]
     )
 
-    // Screen-reader announcements for key state changes.
+    // Track which play/pause transitions we have *already* announced so we
+    // don't spam the live region on every rAF tick. `isBuffering` is
+    // intentionally debounced: a brief buffer burst is not interesting.
+    const lastPlayedRef = useRef<boolean | null>(null)
+    const lastErrorRef = useRef<string | null>(null)
+    const lastAutoplayRef = useRef<boolean | null>(null)
+    const lastMissingRef = useRef<boolean | null>(null)
     useEffect(() => {
-        if (!hasAudio) setAnnouncement("Audio file missing")
-        else if (hasError) setAnnouncement(`Error: ${errorMessage}`)
-        else if (isBuffering) setAnnouncement("Buffering audio…")
-        else if (isPlaying)
-            setAnnouncement(
-                `Playing ${currentTrack.title} by ${currentTrack.artist}`
-            )
-    }, [
-        hasAudio,
-        hasError,
-        errorMessage,
-        isBuffering,
-        isPlaying,
-        currentTrack.title,
-        currentTrack.artist,
-    ])
+        // Track play/pause transitions, not levels.
+        if (lastPlayedRef.current !== isPlaying) {
+            lastPlayedRef.current = isPlaying
+            if (isPlaying) {
+                setAnnouncement(
+                    `Playing ${currentTrack.title} by ${currentTrack.artist}`
+                )
+            }
+        }
+    }, [isPlaying, currentTrack.title, currentTrack.artist])
+
+    useEffect(() => {
+        const msg = errorMessage || ""
+        if (lastErrorRef.current !== msg && hasError) {
+            lastErrorRef.current = msg
+            setAnnouncement(`Error: ${msg}`)
+        } else if (!hasError) {
+            lastErrorRef.current = null
+        }
+    }, [hasError, errorMessage])
+
+    useEffect(() => {
+        if (lastAutoplayRef.current !== autoplayBlocked) {
+            lastAutoplayRef.current = autoplayBlocked
+            if (autoplayBlocked) {
+                setAnnouncement(
+                    "Autoplay blocked. Tap play to start audio."
+                )
+            }
+        }
+    }, [autoplayBlocked])
+
+    useEffect(() => {
+        if (lastMissingRef.current !== hasAudio) {
+            lastMissingRef.current = hasAudio
+            if (!hasAudio) setAnnouncement("Audio file missing")
+        }
+    }, [hasAudio])
+
+    // Pause the equalizer CSS animation when the tab is hidden so we don't
+    // keep the GPU and rAF clock busy in the background.
+    const [pageVisible, setPageVisible] = useState(() =>
+        typeof document === "undefined"
+            ? true
+            : document.visibilityState !== "hidden"
+    )
+    useEffect(() => {
+        if (typeof document === "undefined") return
+        const onVis = () => setPageVisible(document.visibilityState !== "hidden")
+        document.addEventListener("visibilitychange", onVis)
+        return () => document.removeEventListener("visibilitychange", onVis)
+    }, [])
 
     const themeVars = {
         "--ap-accent": accentColor,
@@ -261,7 +448,9 @@ export function AudioPlayer(props: AudioPlayerProps) {
     return (
         <div
             ref={rootRef}
-            className={`ap-root${className ? ` ${className}` : ""}`}
+            className={`ap-root${className ? ` ${className}` : ""}${
+                pageVisible ? "" : " ap-root--hidden"
+            }`}
             style={{ ...themeVars, ...style }}
             role="region"
             aria-label="Audio player"
@@ -297,6 +486,28 @@ export function AudioPlayer(props: AudioPlayerProps) {
                     </div>
                 )}
 
+                {autoplayBlocked && hasAudio && !hasError && (
+                    <div
+                        className="ap-banner ap-banner--info ap-banner--col ap-anim-in"
+                        role="status"
+                    >
+                        <div className="ap-banner__row">
+                            <InfoIcon />
+                            <span>Autoplay blocked. Tap play to start audio.</span>
+                        </div>
+                        <button
+                            type="button"
+                            className="ap-retry-btn"
+                            onClick={() => {
+                                dismissAutoplayBlocked()
+                                toggle()
+                            }}
+                        >
+                            Play
+                        </button>
+                    </div>
+                )}
+
                 {hasError && hasAudio && (
                     <div className="ap-banner ap-banner--error ap-banner--col ap-anim-in">
                         <div className="ap-banner__row">
@@ -318,6 +529,7 @@ export function AudioPlayer(props: AudioPlayerProps) {
                             aria-label="More options"
                             aria-haspopup="menu"
                             aria-expanded={menuOpen}
+                            ref={menuButtonRef}
                         >
                             <DotsIcon />
                         </button>
@@ -325,6 +537,7 @@ export function AudioPlayer(props: AudioPlayerProps) {
                             <div
                                 className="ap-menu__panel ap-anim-in"
                                 role="menu"
+                                onKeyDown={handleMenuKeyDown}
                             >
                                 <button
                                     type="button"
@@ -332,6 +545,9 @@ export function AudioPlayer(props: AudioPlayerProps) {
                                     aria-checked={localAutoPlay}
                                     className="ap-menu__item ap-tap"
                                     onClick={handleAutoPlayToggle}
+                                    ref={(el) => {
+                                        menuItemRefs.current[0] = el
+                                    }}
                                 >
                                     <span className="ap-menu__label">
                                         <AutoPlayIcon />
@@ -350,6 +566,9 @@ export function AudioPlayer(props: AudioPlayerProps) {
                                     aria-checked={localLoop}
                                     className="ap-menu__item ap-tap"
                                     onClick={handleLoopToggle}
+                                    ref={(el) => {
+                                        menuItemRefs.current[1] = el
+                                    }}
                                 >
                                     <span className="ap-menu__label">
                                         <LoopIcon />
@@ -488,6 +707,7 @@ export function AudioPlayer(props: AudioPlayerProps) {
                         volume={volume}
                         isMuted={isMuted}
                         disabled={!hasAudio}
+                        volumeUnsupported={volumeUnsupported}
                         onVolumeChange={setVolume}
                         onToggleMute={toggleMute}
                     />
@@ -569,6 +789,13 @@ const ErrorIcon = () => (
         <line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
 )
+const InfoIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+)
 const PlayIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M8 5v14l12-7z" />
@@ -586,7 +813,6 @@ const SpinnerIcon = () => (
         <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
     </svg>
 )
-/* Skip-back 10: circular counter-clockwise arrow + "10" */
 const Back10Icon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M3.5 12a8.5 8.5 0 1 0 2.7-6.2" />
@@ -594,7 +820,6 @@ const Back10Icon = () => (
         <text x="12" y="15" textAnchor="middle" fontSize="7" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, -apple-system, sans-serif">10</text>
     </svg>
 )
-/* Skip-forward 10: circular clockwise arrow + "10" */
 const Fwd10Icon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M20.5 12a8.5 8.5 0 1 1-2.7-6.2" />
@@ -602,14 +827,12 @@ const Fwd10Icon = () => (
         <text x="12" y="15" textAnchor="middle" fontSize="7" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, -apple-system, sans-serif">10</text>
     </svg>
 )
-/* Previous track: bar + left triangle */
 const PrevIcon = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <rect x="5" y="4" width="2.5" height="16" rx="0.5" />
         <path d="M20 5v14L9 12z" />
     </svg>
 )
-/* Next track: right triangle + bar */
 const NextIcon = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M4 5v14l11-7z" />

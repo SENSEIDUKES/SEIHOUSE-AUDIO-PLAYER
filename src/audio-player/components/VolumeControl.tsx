@@ -1,10 +1,17 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent } from "react"
 
 interface VolumeControlProps {
     volume: number
     isMuted: boolean
     disabled: boolean
+    /**
+     * True when the host environment (e.g. iOS Safari) ignores programmatic
+     * volume changes. The UI shows a small hint and the slider remains
+     * interactive so it still reflects user intent; the mute toggle is the
+     * guaranteed-effective control on those platforms.
+     */
+    volumeUnsupported?: boolean
     onVolumeChange: (value: number) => void
     onToggleMute: () => void
 }
@@ -13,16 +20,21 @@ interface VolumeControlProps {
  * Mute toggle + a custom vertical-agnostic horizontal slider, built on the same
  * Pointer Events pattern as the scrubber for consistent behavior. Note: iOS
  * Safari ignores programmatic volume, so the mute button is the reliable control
- * there; the slider is effectively desktop-only.
+ * there; the slider is effectively desktop-only. We surface a small hint to
+ * users when we detect that the browser is not honoring the slider.
  */
 export function VolumeControl({
     volume,
     isMuted,
     disabled,
+    volumeUnsupported = false,
     onVolumeChange,
     onToggleMute,
 }: VolumeControlProps) {
     const trackRef = useRef<HTMLDivElement>(null)
+    // Pointer-capture bookkeeping so a drag in flight is released on unmount.
+    const captureIdRef = useRef<number | null>(null)
+    const captureTargetRef = useRef<HTMLElement | null>(null)
 
     const ratioFromEvent = useCallback((clientX: number) => {
         const el = trackRef.current
@@ -32,10 +44,33 @@ export function VolumeControl({
         return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     }, [])
 
+    const releaseCapture = useCallback(() => {
+        const target = captureTargetRef.current
+        const id = captureIdRef.current
+        if (target !== null && id !== null) {
+            try {
+                if (target.hasPointerCapture(id)) {
+                    target.releasePointerCapture(id)
+                }
+            } catch {
+                // The element may have been detached; nothing to release.
+            }
+        }
+        captureTargetRef.current = null
+        captureIdRef.current = null
+    }, [])
+
     const handlePointerDown = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
             if (disabled || event.button !== 0) return
-            event.currentTarget.setPointerCapture(event.pointerId)
+            const target = event.currentTarget
+            try {
+                target.setPointerCapture(event.pointerId)
+            } catch {
+                // Some embedded webviews reject capture; fall through.
+            }
+            captureTargetRef.current = target
+            captureIdRef.current = event.pointerId
             onVolumeChange(ratioFromEvent(event.clientX))
         },
         [disabled, onVolumeChange, ratioFromEvent]
@@ -43,8 +78,16 @@ export function VolumeControl({
 
     const handlePointerMove = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
-            if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
             if (disabled) return
+            // Only react to the pointer that started the drag. Without this
+            // guard, simply moving any pointer over the slider would yank
+            // the thumb (and re-trigger onVolumeChange) on every hover.
+            if (
+                captureIdRef.current === null ||
+                event.pointerId !== captureIdRef.current
+            ) {
+                return
+            }
             onVolumeChange(ratioFromEvent(event.clientX))
         },
         [disabled, onVolumeChange, ratioFromEvent]
@@ -52,27 +95,45 @@ export function VolumeControl({
 
     const handlePointerUp = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
-            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                event.currentTarget.releasePointerCapture(event.pointerId)
+            // Only release capture for the pointer we actually captured.
+            // A second touch or hover release must not yank capture away
+            // from the active drag.
+            const id = captureIdRef.current
+            if (id === null || event.pointerId !== id) {
+                return
             }
+            releaseCapture()
         },
-        []
+        [releaseCapture]
     )
 
     const handleKeyDown = useCallback(
         (event: KeyboardEvent<HTMLDivElement>) => {
             if (disabled) return
             let next: number | null = null
-            if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-                next = volume + 0.05
-            } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-                next = volume - 0.05
-            } else if (event.key === "Home") {
-                next = 0
-            } else if (event.key === "End") {
-                next = 1
-            } else {
-                return
+            switch (event.key) {
+                case "ArrowRight":
+                case "ArrowUp":
+                    next = volume + 0.05
+                    break
+                case "ArrowLeft":
+                case "ArrowDown":
+                    next = volume - 0.05
+                    break
+                case "PageUp":
+                    next = volume + 0.1
+                    break
+                case "PageDown":
+                    next = volume - 0.1
+                    break
+                case "Home":
+                    next = 0
+                    break
+                case "End":
+                    next = 1
+                    break
+                default:
+                    return
             }
             event.preventDefault()
             onVolumeChange(Math.max(0, Math.min(1, next)))
@@ -80,8 +141,18 @@ export function VolumeControl({
         [disabled, onVolumeChange, volume]
     )
 
+    // Release any pointer capture if the component unmounts mid-drag.
+    useEffect(() => {
+        return () => {
+            releaseCapture()
+        }
+    }, [releaseCapture])
+
     const effective = isMuted ? 0 : volume
-    const pct = effective * 100
+    // Clamp pct to 0-100 (and treat non-finite as 0) so a bad prop value
+    // cannot push the fill or thumb off the slider track.
+    const rawPct = effective * 100
+    const pct = Number.isFinite(rawPct) ? Math.max(0, Math.min(100, rawPct)) : 0
 
     return (
         <div className="ap-volume">
@@ -124,6 +195,15 @@ export function VolumeControl({
                 <div className="ap-volume__fill" style={{ width: `${pct}%` }} />
                 <div className="ap-volume__thumb" style={{ left: `${pct}%` }} />
             </div>
+            {volumeUnsupported && !disabled && (
+                <span
+                    className="ap-volume__hint"
+                    role="note"
+                    aria-label="Use the mute button to silence audio; this browser does not support volume control"
+                >
+                    iOS
+                </span>
+            )}
         </div>
     )
 }
