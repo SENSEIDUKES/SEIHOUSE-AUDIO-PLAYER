@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react"
+import type { CSSProperties, ReactNode } from "react"
 
 /** A single playable track. */
 export interface Track {
@@ -127,4 +127,65 @@ export interface AudioPlayerEngine {
     loadAndPlay: () => void
     /** Acknowledge the autoplay-blocked flag after presenting a UI affordance. */
     dismissAutoplayBlocked: () => void
+}
+
+/** How the global session behaves when a track ends. */
+export type RepeatMode = "off" | "all" | "one"
+
+/**
+ * The global audio session. A superset of `AudioPlayerEngine`: anything that
+ * accepts an `AudioPlayerEngine` (e.g. the presentational `ProgressBar` /
+ * `VolumeControl` wiring) also accepts a `SessionEngine`. On top of the engine
+ * it adds a queue and queue navigation so many UI skins can share one
+ * `<audio>` element and stay in sync.
+ */
+export interface SessionEngine extends AudioPlayerEngine {
+    /** The current playback queue. */
+    queue: Track[]
+    /** Index of the active track in `queue`, or -1 when the queue is empty. */
+    currentIndex: number
+    /** The active track, or null when the queue is empty. */
+    currentTrack: Track | null
+    /** Whether playback order is shuffled. */
+    shuffle: boolean
+    /** Repeat behavior at the end of a track. */
+    repeatMode: RepeatMode
+    /** True when there is a track to advance to. */
+    canNext: boolean
+    /** True when there is a track to go back to. */
+    canPrevious: boolean
+
+    /** Replace the queue. Optionally start at `startIndex` and begin playing. */
+    setQueue: (tracks: Track[], startIndex?: number, autoPlay?: boolean) => void
+    /** Jump to and play a queued track by index. */
+    playTrack: (index: number) => void
+    /** Append a track to the end of the queue (no playback change). */
+    enqueue: (track: Track) => void
+    /** Play a track immediately: jump to it if already queued, else append + play. */
+    playNow: (track: Track) => void
+    /** Advance to the next track (honors shuffle / repeat). */
+    next: () => void
+    /** Go to the previous track (restarts the current track if past 3s). */
+    previous: () => void
+    /** Empty the queue and stop playback. */
+    clearQueue: () => void
+    /** Toggle shuffled playback order. */
+    toggleShuffle: () => void
+    /** Cycle repeat mode: off → all → one → off. */
+    cycleRepeat: () => void
+}
+
+/** Props for `AudioSessionProvider`. */
+export interface AudioSessionProviderProps {
+    children: ReactNode
+    /** Tracks the session starts with. */
+    initialQueue?: Track[]
+    /** Index within `initialQueue` to start on. Defaults to 0. */
+    initialIndex?: number
+    /** Best-effort autoplay of the first track on mount. */
+    autoPlay?: boolean
+    /** Initial repeat mode. Defaults to "off". */
+    repeatMode?: RepeatMode
+    /** Initial shuffle state. Defaults to false. */
+    shuffle?: boolean
 }

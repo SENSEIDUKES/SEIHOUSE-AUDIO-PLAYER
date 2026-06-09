@@ -999,6 +999,47 @@ body {
     margin: 0 0 10px;
 }
 
+/* ----------------------------- Global session section ----------------------------- */
+.lab-session {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+    gap: 24px;
+    width: 100%;
+}
+.lab-session__main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+.lab-session__sea {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+}
+.lab-session__side {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+.lab-session__vault {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.lab-session__sticky {
+    margin-top: 20px;
+    border: 1px solid var(--lab-border);
+    border-radius: var(--lab-radius);
+    overflow: hidden;
+}
+@media (max-width: 860px) {
+    .lab-session {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ----------------------------- Footer ----------------------------- */
 .lab-footer {
     text-align: center;
