@@ -565,6 +565,91 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         }
     }, [hasAudio])
 
+    // ── Media Session API (progressive enhancement) ──
+    const mediaSessionRef = useRef<{
+        sourceKey: string
+        cleanup: () => void
+    } | null>(null)
+    useEffect(() => {
+        if (typeof navigator === "undefined" || !("mediaSession" in navigator))
+            return
+
+        const ms = navigator.mediaSession
+
+        // Clean up previous registration when the track changes.
+        if (mediaSessionRef.current) {
+            mediaSessionRef.current.cleanup()
+        }
+
+        // Set metadata.
+        const artwork = backgroundImage?.src
+            ? [{ src: backgroundImage.src, sizes: "512x512", type: "image/jpeg" }]
+            : []
+        ms.metadata = new MediaMetadata({
+            title: currentTrack.title,
+            artist: currentTrack.artist,
+            album: "",
+            artwork,
+        })
+
+        // Register action handlers. Older browsers throw when an unknown action
+        // type is passed, so each registration is wrapped.
+        const actions: MediaSessionAction[] = [
+            "play",
+            "pause",
+            "previoustrack",
+            "nexttrack",
+            "seekbackward",
+            "seekforward",
+            "stop",
+        ]
+        const handlers: Record<string, MediaSessionActionHandler> = {
+            play: () => engine.play(true),
+            pause: () => engine.pause(),
+            previoustrack: () => previousTrack(),
+            nexttrack: () => nextTrack(),
+            seekbackward: () => seekBy(-10),
+            seekforward: () => seekBy(10),
+            stop: () => engine.pause(),
+        }
+        for (const action of actions) {
+            try {
+                ms.setActionHandler(action, handlers[action])
+            } catch {
+                /* unsupported action type */
+            }
+        }
+
+        mediaSessionRef.current = {
+            sourceKey,
+            cleanup: () => {
+                ms.metadata = null
+                for (const action of actions) {
+                    try {
+                        ms.setActionHandler(action, null)
+                    } catch {
+                        /* unsupported action type */
+                    }
+                }
+            },
+        }
+
+        return () => {
+            if (mediaSessionRef.current) {
+                mediaSessionRef.current.cleanup()
+                mediaSessionRef.current = null
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sourceKey])
+
+    // Keep playback state in sync with the OS.
+    useEffect(() => {
+        if (typeof navigator === "undefined" || !("mediaSession" in navigator))
+            return
+        navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused"
+    }, [isPlaying])
+
     // Pause the equalizer CSS animation when the tab is hidden so we don't
     // keep the GPU and rAF clock busy in the background.
     const [pageVisible, setPageVisible] = useState(() =>

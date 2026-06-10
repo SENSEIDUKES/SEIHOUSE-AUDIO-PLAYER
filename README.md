@@ -120,6 +120,12 @@ See [`docs/automix-lite.md`](./docs/automix-lite.md) for details, fallbacks, and
 
 ---
 
+## Playback resilience & Media Session API
+
+Details on error recovery, retry flow, autoplay-blocked handling, token-based stale-callback protection, and the Media Session API integration (lock-screen metadata, hardware media keys) are documented in [`docs/playback-resilience-and-media-session.md`](./docs/playback-resilience-and-media-session.md).
+
+---
+
 ## Browser / mobile quality matrix
 
 The officially supported browser and mobile behavior is documented in [`docs/browser-mobile-quality-matrix.md`](./docs/browser-mobile-quality-matrix.md).
