@@ -24,6 +24,9 @@
         0 1px 4px rgba(0, 0, 0, 0.08);
     color: var(--ap-text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Lets the player adapt to the width of whatever surface embeds it
+       (cards, sidebars, phone frames), not just the viewport. */
+    container: ap-player / inline-size;
 }
 
 .ap-root *,
@@ -108,7 +111,7 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-/* ----------------------------- Top actions (menu + share) ----------------------------- */
+/* ----------------------------- Top actions (menu) ----------------------------- */
 
 .ap-top-actions {
     position: absolute;
@@ -118,20 +121,6 @@
     align-items: center;
     gap: 8px;
     z-index: 10;
-}
-
-.ap-share-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--ap-accent);
-    background-color: var(--ap-bg);
-    color: var(--ap-accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .ap-menu {
@@ -160,6 +149,9 @@
     top: calc(100% + 6px);
     right: 0;
     min-width: 200px;
+    max-width: min(280px, calc(100vw - 24px));
+    max-height: min(60vh, 320px);
+    overflow-y: auto;
     padding: 6px;
     border-radius: 10px;
     background-color: rgba(20, 20, 24, 0.92);
@@ -367,6 +359,9 @@
     color: var(--ap-accent);
 }
 .ap-btn--sm {
+    /* Anchor for the coarse-pointer hit-area pseudo-element. Kept off
+       .ap-btn itself because skins reposition some buttons absolutely. */
+    position: relative;
     width: 28px;
     height: 28px;
     opacity: 0.6;
@@ -390,6 +385,7 @@
     gap: 10px;
 }
 .ap-icon-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -615,7 +611,6 @@
 .ap-btn:focus-visible,
 .ap-icon-btn:focus-visible,
 .ap-wide-btn:focus-visible,
-.ap-share-btn:focus-visible,
 .ap-tracklist__item:focus-visible,
 .ap-retry-btn:focus-visible,
 .ap-menu__btn:focus-visible,
@@ -666,9 +661,16 @@
     }
 }
 
+/* Real mobile viewports (full-bleed player on a phone). */
 @media (max-width: 480px) {
+    .ap-root {
+        padding: 16px;
+    }
+    .ap-content {
+        gap: 12px;
+    }
     .ap-track-info__title {
-        font-size: 20px;
+        font-size: clamp(17px, 5.5vw, 22px);
     }
     .ap-track-info__artist {
         font-size: 13px;
@@ -676,6 +678,65 @@
     .ap-progress__thumb {
         width: 18px;
         height: 18px;
+    }
+    .ap-transport {
+        gap: 8px;
+    }
+    .ap-btn--play {
+        width: 56px;
+        height: 56px;
+    }
+    .ap-btn--ghost {
+        width: 38px;
+        height: 38px;
+    }
+    .ap-menu__panel {
+        max-width: calc(100vw - 24px);
+    }
+}
+
+/* Narrow embeds (marketplace cards, sidebars, phone frames) where the
+   viewport is wide but the player itself is cramped. Mirrors the mobile
+   media query above, sized against the player's own width. */
+@container ap-player (max-width: 420px) {
+    .ap-content {
+        gap: 12px;
+    }
+    .ap-track-info__title {
+        font-size: clamp(17px, 6.5cqw, 22px);
+    }
+    .ap-track-info__artist {
+        font-size: 13px;
+    }
+    .ap-track-counter {
+        font-size: 11px;
+    }
+    .ap-transport {
+        gap: 8px;
+    }
+    .ap-btn--play {
+        width: 56px;
+        height: 56px;
+    }
+    .ap-btn--ghost {
+        width: 38px;
+        height: 38px;
+    }
+    .ap-menu__panel {
+        max-width: calc(100cqw - 16px);
+        min-width: min(200px, calc(100cqw - 16px));
+    }
+}
+
+/* Touch devices: grow the hit area of the small controls to ~44px without
+   changing how they look. Buttons are position: relative so the inset
+   pseudo-element resolves against the button box. */
+@media (pointer: coarse) {
+    .ap-btn--sm::after,
+    .ap-icon-btn::after {
+        content: "";
+        position: absolute;
+        inset: -8px;
     }
 }
 

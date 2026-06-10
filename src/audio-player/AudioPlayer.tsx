@@ -434,6 +434,22 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         }
     }, [currentTrack.title, currentTrack.artist])
 
+    const handleShareClick = useCallback(() => {
+        if (
+            typeof navigator !== "undefined" &&
+            typeof navigator.share === "function"
+        ) {
+            // The native share sheet takes over the screen; close the menu and
+            // park focus on the trigger so keyboard users land somewhere
+            // predictable when the sheet is dismissed.
+            setMenuOpen(false)
+            menuButtonRef.current?.focus()
+        }
+        // Clipboard fallback: keep the menu open so the inline "copied"
+        // feedback on the Share item stays visible.
+        handleShare()
+    }, [handleShare])
+
     // Keyboard shortcuts scoped to the player root (not window) so they never
     // fight focused controls or other parts of the host app. Space/Enter on an
     // actual button is left to the button, preventing double-triggering.
@@ -687,17 +703,26 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                                     </span>
                                     <span className="ap-menu__value">{localRepeatMode}</span>
                                 </button>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="ap-menu__item ap-tap"
+                                    onClick={handleShareClick}
+                                    ref={(el) => {
+                                        menuItemRefs.current[3] = el
+                                    }}
+                                >
+                                    <span className="ap-menu__label">
+                                        {showCopied ? <CheckIcon /> : <ShareIcon />}
+                                        Share
+                                    </span>
+                                    {showCopied && (
+                                        <span className="ap-menu__value">copied</span>
+                                    )}
+                                </button>
                             </div>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        className="ap-share-btn ap-tap"
-                        onClick={handleShare}
-                        aria-label="Share track"
-                    >
-                        {showCopied ? <CheckIcon /> : <ShareIcon />}
-                    </button>
                 </div>
 
                 {isPlaylistMode && (

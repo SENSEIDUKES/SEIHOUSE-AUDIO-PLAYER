@@ -10,7 +10,8 @@ import "./skins.css"
 export interface SeaCardPlayerProps extends AudioPlayerTheme {
     /** The track this card represents and plays into the shared session. */
     track: Track
-    /** CSS background for the card art (gradient or url). */
+    /** CSS background image for the card art (gradient or url). Applied as
+        background-image so the cover/center sizing rules hold. */
     art?: string
     /** Optional price / tag chip. */
     tag?: string
@@ -52,7 +53,7 @@ export function SeaCardPlayer({
             className={`ap-sea${isActive ? " ap-sea--active" : ""}${className ? ` ${className}` : ""}`}
             style={{ ...buildThemeVars(theme), ...style }}
         >
-            <div className="ap-sea__art" style={{ background: art }} aria-hidden="true">
+            <div className="ap-sea__art" style={{ backgroundImage: art }} aria-hidden="true">
                 <button
                     type="button"
                     className="ap-btn ap-btn--play ap-sea__play ap-tap"

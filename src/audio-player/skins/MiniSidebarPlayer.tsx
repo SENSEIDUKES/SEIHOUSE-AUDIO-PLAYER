@@ -6,7 +6,8 @@ import { NextIcon, PauseIcon, PlayIcon, SpinnerIcon } from "./icons"
 import "./skins.css"
 
 export interface MiniSidebarPlayerProps extends AudioPlayerTheme {
-    /** Optional CSS background for the small art block (gradient or url). */
+    /** Optional CSS background image for the small art block (gradient or url).
+        Applied as background-image so the cover/center sizing rules hold. */
     art?: string
     className?: string
     style?: CSSProperties
@@ -35,7 +36,7 @@ export function MiniSidebarPlayer({
         >
             <div
                 className={`ap-ms__art${isPlaying ? " ap-ms__art--playing" : ""}`}
-                style={{ background: art }}
+                style={{ backgroundImage: art }}
                 aria-hidden="true"
             />
             <div className="ap-ms__meta">

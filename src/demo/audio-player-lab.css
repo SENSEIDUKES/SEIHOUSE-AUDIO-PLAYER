@@ -636,19 +636,24 @@ body {
     display: flex;
     flex-direction: column;
 }
+/* background-image (not the background shorthand) so the cover/center
+   sizing from .ap-art survives; the shorthand would reset it. */
 .lab-card__art {
-    aspect-ratio: 4 / 3;
-    background: linear-gradient(135deg, #FF7AC6, #7C5CFF);
+    aspect-ratio: 1 / 1;
+    background-image: linear-gradient(135deg, #FF7AC6, #7C5CFF);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     position: relative;
 }
 .lab-card__art--b {
-    background: linear-gradient(135deg, #22D3A6, #0EA5E9);
+    background-image: linear-gradient(135deg, #22D3A6, #0EA5E9);
 }
 .lab-card__art--c {
-    background: linear-gradient(135deg, #F59E0B, #EF4444);
+    background-image: linear-gradient(135deg, #F59E0B, #EF4444);
 }
 .lab-card__art--d {
-    background: linear-gradient(135deg, #A855F7, #EC4899);
+    background-image: linear-gradient(135deg, #A855F7, #EC4899);
 }
 .lab-card__body {
     padding: 16px;
@@ -685,7 +690,9 @@ body {
     border-radius: 999px;
 }
 .lab-card__player {
-    height: 200px;
+    /* min- rather than a fixed height: the full player should never be
+       squeezed into a card too short for its controls. */
+    min-height: 200px;
 }
 
 /* ----------------------------- 3. Sidebar widget + main content ----------------------------- */
@@ -721,7 +728,7 @@ body {
     margin: 0;
 }
 .lab-app__player {
-    height: 280px;
+    min-height: 280px;
 }
 .lab-app__nav {
     display: flex;
@@ -834,7 +841,10 @@ body {
 .lab-phone__art {
     aspect-ratio: 1 / 1;
     border-radius: 12px;
-    background: linear-gradient(135deg, #7C5CFF, #22D3A6);
+    background-image: linear-gradient(135deg, #7C5CFF, #22D3A6);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     position: relative;
     overflow: hidden;
 }

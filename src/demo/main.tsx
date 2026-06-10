@@ -121,7 +121,7 @@ function PhoneFrame({ children, art, topLeft, topRight }: { children: ReactNode;
                     <span>{topLeft}</span>
                     <span>{topRight}</span>
                 </div>
-                <div className="lab-phone__art" style={{ background: art }} />
+                <div className="ap-art lab-phone__art" style={{ backgroundImage: art }} />
                 {children}
                 <div className="lab-phone__handle" />
             </div>
@@ -826,7 +826,7 @@ function Lab() {
                             { t: "Velvet", a: "SEIHouse", price: "Free", art: "linear-gradient(135deg,#A855F7,#EC4899)", mod: "d" },
                         ].map((c) => (
                             <article key={c.t} className="lab-card">
-                                <div className={`lab-card__art${c.mod ? ` lab-card__art--${c.mod}` : ""}`} style={{ background: c.art }} />
+                                <div className={`ap-art lab-card__art${c.mod ? ` lab-card__art--${c.mod}` : ""}`} style={{ backgroundImage: c.art }} />
                                 <div className="lab-card__body">
                                     <div className="lab-card__head">
                                         <div style={{ minWidth: 0 }}>
@@ -985,7 +985,7 @@ function Lab() {
                             <RapidStep n={3} title="Skip +/-10s" body="Mash back10 / fwd10. Time stays within bounds; no NaN in the timer." />
                             <RapidStep n={4} title="Volume / mute" body="Slide volume to 0, click mute, click unmute, drag back up. Audio should restore to previous level." />
                             <RapidStep n={5} title="Keyboard" body="Focus the player and press Space, J, K, L, N, P. Shortcuts must not fire when a button has focus." />
-                            <RapidStep n={6} title="Lyrics / share" body="Toggle lyrics; click share (clipboard path on desktop). Toast should disappear after 2s." />
+                            <RapidStep n={6} title="Lyrics / share" body="Toggle lyrics; open the ... menu and click Share (clipboard path on desktop). The 'copied' badge should disappear after 2s." />
                         </div>
                     </div>
                 </div>
@@ -997,7 +997,7 @@ function Lab() {
                     7. Sticky player inside a scrollable list
                     <small>Overflow</small>
                 </h2>
-                <p className="lab-section__desc">Confirms the player doesn't break out of its container and that its share button still sits above sibling content when used inside an <code>overflow: auto</code> scroller.</p>
+                <p className="lab-section__desc">Confirms the player doesn't break out of its container and that its menu button still sits above sibling content when used inside an <code>overflow: auto</code> scroller.</p>
                 <div className="lab-section__grid">
                     <div className="lab-sticky-wrap">
                         <div className="lab-sticky">
@@ -1008,7 +1008,7 @@ function Lab() {
                             <h4>Long content #1</h4>
                             <p>Keep scrolling. The player should stay pinned to the top of the scroll container.</p>
                             <h4>Long content #2</h4>
-                            <p>The share button uses z-index 10 inside the player; outside it the lab styles should not leak over the player root.</p>
+                            <p>The menu button uses z-index 10 inside the player; outside it the lab styles should not leak over the player root.</p>
                             <h4>Long content #3</h4>
                             <p>Resize the window narrower than 480px. The track title font should shrink and the scrubber thumb should grow slightly.</p>
                             <h4>Long content #4</h4>

@@ -26,6 +26,38 @@
     background-color: rgba(255, 255, 255, 0.12);
 }
 
+/* ----------------------------- Art / hero sizing -----------------------------
+   Reusable sizing contract for album / hero artwork. Square by default,
+   cover-cropped and centered, and it behaves the same whether the art is a
+   CSS background (gradient or url) or a child <img>. Surfaces override
+   --ap-art-ratio / --ap-art-fit / --ap-art-pos, or use the modifiers. */
+.ap-art {
+    aspect-ratio: var(--ap-art-ratio, 1 / 1);
+    width: 100%;
+    overflow: hidden;
+    background-size: var(--ap-art-fit, cover);
+    background-position: var(--ap-art-pos, center);
+    background-repeat: no-repeat;
+}
+.ap-art > img {
+    width: 100%;
+    height: 100%;
+    object-fit: var(--ap-art-fit, cover);
+    object-position: var(--ap-art-pos, center);
+    display: block;
+}
+.ap-art--contain {
+    --ap-art-fit: contain;
+}
+.ap-art--wide {
+    --ap-art-ratio: 16 / 9;
+}
+/* Hero thumbnail framed inside a larger layout: scales with the player
+   container on mobile instead of overflowing it. */
+.ap-art--frame {
+    width: clamp(96px, 38cqw, 320px);
+}
+
 /* ----------------------------- Full card ----------------------------- */
 .ap-fc {
     position: relative;
@@ -253,6 +285,9 @@
     height: 44px;
     border-radius: 8px;
     flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 .ap-ms__art--playing {
