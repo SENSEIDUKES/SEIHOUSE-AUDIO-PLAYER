@@ -44,14 +44,24 @@ export interface WaveformProgressProps {
 type WaveformStatus = "pending" | "ready" | "failed"
 
 /** Resolve a color prop, falling back to a CSS custom property on the wrapper
- * (canvas fillStyle cannot evaluate `var()` strings). */
+ * (canvas fillStyle cannot evaluate `var()` strings). Explicit `var(--x)`
+ * values are resolved against the wrapper's computed style too. */
 function resolveColor(
     el: HTMLElement,
     explicit: string | undefined,
     cssVar: string,
     fallback: string
 ): string {
-    if (explicit && !explicit.includes("var(")) return explicit
+    if (explicit) {
+        if (!explicit.includes("var(")) return explicit
+        const match = explicit.match(/var\(\s*([^,)]+)/)
+        if (match?.[1]) {
+            const resolved = getComputedStyle(el)
+                .getPropertyValue(match[1].trim())
+                .trim()
+            if (resolved) return resolved
+        }
+    }
     const fromVar = getComputedStyle(el).getPropertyValue(cssVar).trim()
     return fromVar || fallback
 }

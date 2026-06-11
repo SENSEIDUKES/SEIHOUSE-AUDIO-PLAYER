@@ -349,7 +349,9 @@ export class WebAudioBackend implements AudioBackend {
     }
 
     setSource(src: string | null): void {
-        const next = src && src.trim().length > 0 ? src : null
+        // Store the trimmed form so load()'s decode-cache and preload lookups
+        // use the same key preload() trims to.
+        const next = src && src.trim().length > 0 ? src.trim() : null
         this.generation += 1
         this.abortFetch()
         this.stopSourceNode()
