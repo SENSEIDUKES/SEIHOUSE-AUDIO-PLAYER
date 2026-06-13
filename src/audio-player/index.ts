@@ -3,6 +3,7 @@ export { useAudioPlayer } from "./useAudioPlayer"
 export { useAutomix, AUTOMIX_FADE_MS } from "./automix/useAutomix"
 export { PluginManager } from "./core/plugins/PluginManager"
 export { usePluginManager } from "./core/plugins/usePluginManager"
+export { renderPluginSlot } from "./core/plugins/renderPluginSlot"
 export { createAudioBackend } from "./core/audio/AudioBackendFactory"
 export { HTML5AudioBackend } from "./core/audio/HTML5AudioBackend"
 export { WebAudioBackend } from "./core/audio/WebAudioBackend"
@@ -11,6 +12,10 @@ export {
     createAutomixPlugin,
     createAutomixProPlugin,
 } from "./plugins/AutomixPlugin"
+export {
+    WaveformPlugin,
+    createWaveformPlugin,
+} from "./plugins/WaveformPlugin"
 export {
     KeyboardShortcutPlugin,
     createKeyboardShortcutPlugin,
@@ -106,6 +111,9 @@ export type {
     PluginHookName,
     PluginHookResult,
     PluginPlayerContext,
+    PluginProgressSlotProps,
+    PluginRenderSlot,
+    PluginRenderSlotProps,
 } from "./core/plugins/PluginInterface"
 export type {
     AudioBackend,
@@ -117,7 +125,8 @@ export type {
 } from "./core/audio/AudioBackend"
 export type { WaveformProgressProps } from "./components/WaveformProgress"
 export type { ComputedPeaks } from "./core/waveform/peaks"
-export type { AutomixPluginConfig } from "./plugins/AutomixPlugin"
+export type { AutomixMode, AutomixPluginConfig } from "./plugins/AutomixPlugin"
+export type { WaveformPluginConfig } from "./plugins/WaveformPlugin"
 export type { KeyboardShortcutPluginConfig } from "./plugins/KeyboardShortcutPlugin"
 export type {
     AnalyticsEventPayload,

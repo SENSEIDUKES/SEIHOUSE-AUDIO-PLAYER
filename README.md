@@ -40,7 +40,8 @@ The player currently supports:
 - Legacy `loop` compatibility.
 - Loading, buffering, and playback-state handling.
 - Browser and mobile quality checks documented in the repo.
-- Opt-in **Automix Lite** transitions with conservative silence trimming.
+- Opt-in **AutoMix** plugin transitions with Lite and Pro modes.
+- Optional waveform scrubber via `createWaveformPlugin()`.
 - Multiple player surfaces, including standalone/full-card and sticky bottom player contexts.
 
 ---
@@ -52,11 +53,11 @@ This repo is still in active development. Planned and ongoing directions include
 - A compact Vault-ready player for large song libraries.
 - A persistent bottom-screen global player for SEIHouse apps.
 - More robust shared session state: one audio source, many UI skins.
-- Improved waveform/scrubber behavior.
+- Expanded plugin render slots for player UI extensions.
 - SEA Portal and tap-card integration.
 - Arc Notes-aware playback.
 - Vault Radio station mode.
-- Automix-lite refinements.
+- AutoMix refinements.
 - Animated album/hero support.
 - Expanded metadata and lyric display modes.
 - Better mobile-first playback recovery and touch behavior.
@@ -101,22 +102,35 @@ This allows SEIHouse to keep the playback behavior consistent while designing di
 
 ---
 
-## Automix Lite
+## AutoMix and Waveform Plugins
 
-**Automix Lite** is an opt-in transition system for smoother playlist movement.
+**AutoMix** is an opt-in transition system for smoother playlist movement.
 
-Current behavior includes two-deck crossfade transitions with an approximately 5.5 second equal-power fade and conservative RMS-based silence trimming so fades can skip dead air instead of fading through empty space.
+Use one plugin with either Lite or Pro mode:
 
-Automix Lite can be toggled from:
+```tsx
+import { createAutomixPlugin, createWaveformPlugin } from "@seihouse/audio-player"
+
+const plugins = [
+  createAutomixPlugin({ mode: "lite" }),
+  createWaveformPlugin(),
+]
+```
+
+Lite mode uses two-deck crossfade transitions with an approximately 5.5 second equal-power fade and conservative RMS-based silence trimming. Pro mode adds BPM/beat/energy analysis and falls back to Lite behavior per transition when metadata is unavailable or low-confidence.
+
+Legacy AutoMix wrappers still work:
 
 - the standalone player's ellipsis menu in playlist mode,
 - the `FullCardPlayer` transport row,
 - the `StickyBottomPlayer` transport row,
 - or programmatically through `SessionEngine.toggleAutomix()` / the `automix` props.
 
-With Automix Lite off, normal playback behavior is unchanged.
+With AutoMix off, normal playback behavior is unchanged.
 
-See [`docs/automix-lite.md`](./docs/automix-lite.md) for details, fallbacks, and known limits.
+Waveforms are now available as a progress render-slot plugin through `createWaveformPlugin()`. The old `showWaveform` prop remains as a compatibility wrapper for standalone `AudioPlayer`.
+
+See [`docs/automix.md`](./docs/automix.md) for details, fallbacks, and known limits.
 
 ---
 

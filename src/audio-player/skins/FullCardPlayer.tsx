@@ -3,12 +3,12 @@ import type { CSSProperties } from "react"
 import type { AudioPlayerTheme } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { QueueDrawer } from "../components/QueueDrawer"
-import { ProgressBar } from "../components/ProgressBar"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
 import { useShareTrack } from "../components/useShareTrack"
 import { formatTime } from "../utils/formatTime"
 import { buildThemeVars } from "./themeVars"
+import { renderSessionProgress } from "./renderSessionProgress"
 import {
     Back10Icon,
     DotsIcon,
@@ -53,8 +53,6 @@ export function FullCardPlayer({
         isBuffering,
         currentTime,
         duration,
-        buffered,
-        isSeeking,
         volume,
         isMuted,
         volumeUnsupported,
@@ -208,16 +206,11 @@ export function FullCardPlayer({
             </div>
 
             <div className="ap-progress-group" role="group" aria-label="Playback progress">
-                <ProgressBar
-                    currentTime={currentTime}
-                    duration={duration}
-                    buffered={buffered}
-                    disabled={!hasAudio}
-                    isSeeking={isSeeking}
-                    onSeek={s.seek}
-                    onSeekStart={() => s.setSeeking(true)}
-                    onSeekEnd={() => s.setSeeking(false)}
-                />
+                {renderSessionProgress(s, {
+                    hostId: "full-card",
+                    height: 48,
+                    ...theme,
+                })}
                 <div className="ap-times" aria-hidden="true">
                     <span>{formatTime(currentTime)}</span>
                     <span>{formatTime(duration)}</span>

@@ -1,5 +1,9 @@
 import type { CSSProperties, ReactNode } from "react"
-import type { AudioPlayerPlugin } from "./core/plugins/PluginInterface"
+import type {
+    AudioPlayerPlugin,
+    PluginRenderSlot,
+    PluginRenderSlotProps,
+} from "./core/plugins/PluginInterface"
 import type { AudioBackendInfo, AudioBackendKind } from "./core/audio/AudioBackend"
 
 /** A single playable track. */
@@ -242,6 +246,8 @@ export type RepeatMode = "off" | "all" | "one"
  * `<audio>` element and stay in sync.
  */
 export interface SessionEngine extends AudioPlayerEngine {
+    /** Opaque source identity for the active queue item. */
+    sourceKey: string
     /** The current playback queue. */
     queue: Track[]
     /** Index of the active track in `queue`, or -1 when the queue is empty. */
@@ -283,6 +289,11 @@ export interface SessionEngine extends AudioPlayerEngine {
     cycleRepeat: () => void
     /** Toggle Automix Lite crossfade transitions. */
     toggleAutomix: () => void
+    /** Render a plugin-owned UI slot, if an active plugin claims it. */
+    renderPluginSlot: <K extends PluginRenderSlot>(
+        slot: K,
+        props: PluginRenderSlotProps[K]
+    ) => ReactNode | null
 }
 
 /** Props for `AudioSessionProvider`. */

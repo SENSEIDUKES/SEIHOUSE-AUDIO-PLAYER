@@ -6,7 +6,10 @@ import {
   FullCardPlayer, 
   StickyBottomPlayer,
   useAudioSession,
-  AudioSessionProvider
+  AudioSessionProvider,
+  createAutomixPlugin,
+  createKeyboardShortcutPlugin,
+  createWaveformPlugin,
 } from '@seihouse/audio-player'
 import '@seihouse/audio-player/styles.css'
 
@@ -16,9 +19,7 @@ const tracks = [
     id: 'track-1',
     title: 'Song Title',
     artist: 'Artist Name',
-    albumArt: 'https://example.com/cover.jpg',
-    src: 'https://example.com/audio.mp3',
-    duration: 240, // seconds
+    audioFile: 'https://example.com/audio.mp3',
   },
   // ... more tracks
 ]
@@ -30,11 +31,8 @@ export function MyApp() {
       <h1>My Music App</h1>
       <AudioPlayer 
         tracks={tracks}
-        initialTrackId={tracks[0].id}
-        theme={{
-          primaryColor: '#6366f1',
-          backgroundColor: '#0f172a',
-        }}
+        accentColor="#6366f1"
+        backgroundColor="#0f172a"
       />
     </div>
   )
@@ -80,22 +78,14 @@ export function CustomPlayerUI() {
   )
 }
 
-// With plugins
-import { 
-  PluginRegistryProvider,
-  createAutomixPlugin,
-  createKeyboardShortcutPlugin 
-} from '@seihouse/audio-player'
-
 export function AppWithPlugins() {
   const plugins = [
-    createAutomixPlugin({ enabled: true, crossfadeMs: 3000 }),
-    createKeyboardShortcutPlugin({ enabled: true }),
+    createAutomixPlugin({ mode: 'pro' }),
+    createKeyboardShortcutPlugin(),
+    createWaveformPlugin(),
   ]
 
   return (
-    <PluginRegistryProvider plugins={plugins}>
-      <AudioPlayer tracks={tracks} />
-    </PluginRegistryProvider>
+    <AudioPlayer tracks={tracks} plugins={plugins} />
   )
 }

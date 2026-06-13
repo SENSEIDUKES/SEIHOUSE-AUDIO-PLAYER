@@ -12,13 +12,18 @@ import type {
     ReactNode,
 } from "react"
 import type { AudioPlayerProps, RepeatMode, Track } from "./types"
-import type { AudioPlayerPlugin, PluginPlayerContext } from "./core/plugins/PluginInterface"
+import type {
+    AudioPlayerPlugin,
+    PluginPlayerContext,
+    PluginProgressSlotProps,
+} from "./core/plugins/PluginInterface"
 import { useAudioPlayer } from "./useAudioPlayer"
-import { useAutomix } from "./automix/useAutomix"
 import { useMediaSessionObserver } from "./headless/useMediaSessionObserver"
 import { usePluginManager } from "./core/plugins/usePluginManager"
+import { renderPluginSlot } from "./core/plugins/renderPluginSlot"
+import { createAutomixPlugin } from "./plugins/AutomixPlugin"
+import { createWaveformPlugin } from "./plugins/WaveformPlugin"
 import { ProgressBar } from "./components/ProgressBar"
-import { WaveformProgress } from "./components/WaveformProgress"
 import { VolumeControl } from "./components/VolumeControl"
 import { QueueDrawer } from "./components/QueueDrawer"
 import { SAPController } from "./components/SAPController"
@@ -342,14 +347,6 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     }
     const requestAdvance = useCallback(() => advanceToNextRef.current(), [])
 
-    const automixNextIndex =
-        localAutomix && isPlaylistMode && localRepeatMode !== "one"
-            ? stepTrackIndex(trackIndex, 1)
-            : null
-    const automixNextTrack =
-        automixNextIndex !== null && automixNextIndex !== trackIndex
-            ? localQueue[automixNextIndex] ?? null
-            : null
     const pluginNextIndex =
         isPlaylistMode && localRepeatMode !== "one"
             ? stepTrackIndex(trackIndex, 1)
@@ -359,15 +356,33 @@ function AudioPlayerInner(props: AudioPlayerProps) {
             ? localQueue[pluginNextIndex] ?? null
             : null
 
-    const automixCtl = useAutomix({
-        engine,
-        enabled: localAutomix && isPlaylistMode,
-        sourceKey,
-        currentTrack,
-        nextTrack: automixNextTrack,
-        requestAdvance,
-        suppressDeprecatedWarning: true,
-    })
+    const legacyAutomixPlugin = useMemo(
+        () =>
+            localAutomix && isPlaylistMode
+                ? createAutomixPlugin({ mode: "lite" })
+                : null,
+        [isPlaylistMode, localAutomix]
+    )
+    const legacyWaveformPlugin = useMemo(
+        () =>
+            showWaveform
+                ? createWaveformPlugin({
+                      name: "legacy-waveform",
+                      height: waveformHeight,
+                      waveColor: trackColor,
+                      progressColor,
+                      cursorColor: accentColor,
+                  })
+                : null,
+        [accentColor, progressColor, showWaveform, trackColor, waveformHeight]
+    )
+    const activePlugins = useMemo<readonly AudioPlayerPlugin[]>(() => {
+        const plugins: AudioPlayerPlugin[] = []
+        if (legacyAutomixPlugin) plugins.push(legacyAutomixPlugin)
+        plugins.push(...externalPlugins)
+        if (legacyWaveformPlugin) plugins.push(legacyWaveformPlugin)
+        return plugins
+    }, [externalPlugins, legacyAutomixPlugin, legacyWaveformPlugin])
 
     const pluginContextStateRef = useRef({
         engine,
@@ -414,13 +429,12 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         }),
         []
     )
-    const pluginManager = usePluginManager(externalPlugins, pluginContext)
-    const hasKeyboardShortcutPlugin = externalPlugins.some(
+    const pluginManager = usePluginManager(activePlugins, pluginContext)
+    const hasKeyboardShortcutPlugin = activePlugins.some(
         (plugin) => plugin.handlesKeyboardShortcuts
     )
 
     advanceRef.current = () => {
-        if (automixCtl.handleTrackEnded()) return
         if (pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
         advanceToNextRef.current()
     }
@@ -464,6 +478,8 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         },
         [audioRef, currentTime, seekWithPlugins]
     )
+    const handleSeekStart = useCallback(() => setSeeking(true), [setSeeking])
+    const handleSeekEnd = useCallback(() => setSeeking(false), [setSeeking])
 
     const pluginAwareEngine = useMemo(
         () => ({
@@ -487,6 +503,56 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         nextTrackFn: nextTrack,
         previousTrackFn: previousTrack,
     }
+
+    const progressSlotProps = useMemo<PluginProgressSlotProps>(
+        () => ({
+            hostId: "audio-player",
+            currentTime,
+            duration,
+            buffered,
+            disabled: !hasAudio,
+            isSeeking,
+            onSeek: seekWithPlugins,
+            onSeekStart: handleSeekStart,
+            onSeekEnd: handleSeekEnd,
+            currentTrack,
+            sourceKey,
+            peaks: currentTrack.peaks,
+            peaksDuration: currentTrack.waveformDuration,
+            getDecodedData: engine.getDecodedData,
+            url:
+                engine.getBackendInfo().active === "html5"
+                    ? src
+                    : undefined,
+            height: waveformHeight,
+            waveColor: trackColor,
+            progressColor,
+            cursorColor: accentColor,
+        }),
+        [
+            accentColor,
+            buffered,
+            currentTime,
+            currentTrack,
+            duration,
+            engine,
+            handleSeekEnd,
+            handleSeekStart,
+            hasAudio,
+            isSeeking,
+            progressColor,
+            seekWithPlugins,
+            sourceKey,
+            src,
+            trackColor,
+            waveformHeight,
+        ]
+    )
+    const renderedProgressSlot = renderPluginSlot(
+        activePlugins,
+        "progress",
+        progressSlotProps
+    )
 
     const handleAutoPlayToggle = useCallback(
         () => setLocalAutoPlay((v) => !v),
@@ -865,33 +931,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                 </div>
 
                 <div className="ap-progress-group" role="group" aria-label="Playback progress">
-                    {showWaveform ? (
-                        <WaveformProgress
-                            currentTime={currentTime}
-                            duration={duration}
-                            buffered={buffered}
-                            disabled={!hasAudio}
-                            isSeeking={isSeeking}
-                            onSeek={seekWithPlugins}
-                            onSeekStart={() => setSeeking(true)}
-                            onSeekEnd={() => setSeeking(false)}
-                            peaks={currentTrack.peaks}
-                            peaksDuration={currentTrack.waveformDuration}
-                            getDecodedData={engine.getDecodedData}
-                            // Only the streaming backend needs the second
-                            // fetch+decode; webaudio supplies decoded PCM.
-                            url={
-                                engine.getBackendInfo().active === "html5"
-                                    ? src
-                                    : undefined
-                            }
-                            sourceKey={sourceKey}
-                            height={waveformHeight}
-                            waveColor={trackColor}
-                            progressColor={progressColor}
-                            cursorColor={accentColor}
-                        />
-                    ) : (
+                    {renderedProgressSlot ?? (
                         <ProgressBar
                             currentTime={currentTime}
                             duration={duration}
@@ -899,8 +939,8 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                             disabled={!hasAudio}
                             isSeeking={isSeeking}
                             onSeek={seekWithPlugins}
-                            onSeekStart={() => setSeeking(true)}
-                            onSeekEnd={() => setSeeking(false)}
+                            onSeekStart={handleSeekStart}
+                            onSeekEnd={handleSeekEnd}
                         />
                     )}
                     <div className="ap-times" aria-hidden="true">

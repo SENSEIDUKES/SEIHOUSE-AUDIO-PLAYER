@@ -13,6 +13,8 @@ The plugin system is intentionally additive:
   registered.
 - Existing `useAutomix` imports still work, but direct hook usage now emits a
   deprecation warning. New integrations should prefer `AutomixPlugin`.
+- Existing `showWaveform` props still work on `AudioPlayer`, but new waveform
+  integrations should prefer `createWaveformPlugin()`.
 
 ---
 
@@ -27,6 +29,7 @@ import {
   createLyricsPlugin,
   createSleepTimerPlugin,
   createAutomixPlugin,
+  createWaveformPlugin,
 } from "./src/audio-player"
 ```
 
@@ -87,6 +90,11 @@ export class ExamplePlugin implements AudioPlayerPlugin {
     console.log("play")
   }
 
+  renderSlot(slot, props) {
+    if (slot !== "progress") return null
+    return <MyProgressView {...props} />
+  }
+
 }
 ```
 
@@ -108,6 +116,16 @@ export class ExamplePlugin implements AudioPlayerPlugin {
 | `onSeek(position)` | seconds | A plugin-aware seek action is requested. |
 | `onTimeUpdate(position)` | seconds | Playback time updates. Keep this hook cheap. |
 | `onTrackEnded(track)` | `Track | null` | The active track ends. Return `true` to claim the event and suppress normal host advance. |
+
+### Optional render slots
+
+Plugins can render React UI into host-owned slots without taking over playback.
+The first plugin to return non-null content for a slot wins; throwing renderers
+are logged and skipped.
+
+| Slot | Props | Purpose |
+| --- | --- | --- |
+| `progress` | `PluginProgressSlotProps` | Replace the scrubber/progress UI while using the host's normal seek callbacks. |
 
 ---
 
@@ -217,21 +235,38 @@ Standalone players mount the dropdown into the player root. Shared sessions can
 pass `target` to render the dropdown somewhere else, or call `setTimer` on a
 plugin instance from custom UI.
 
-### `AutomixPlugin`
+### `AutoMixPlugin`
 
-Automix Lite is available as a plugin class/factory:
+AutoMix is available as one plugin class/factory with Lite and Pro modes:
 
 ```ts
-createAutomixPlugin({ enabled: true })
+createAutomixPlugin({ mode: "lite" }) // default
+createAutomixPlugin({ mode: "pro" })
 ```
 
-It mirrors the legacy two-deck crossfade behavior: the main engine audio element
-remains deck A/source-of-truth, while the plugin owns a detached deck B around
-the transition window. It returns `true` from `onTrackEnded` during handoff to
-prevent double-advancing.
+Lite mode mirrors the legacy two-deck crossfade behavior: the main engine audio
+element remains deck A/source-of-truth, while the plugin owns a detached deck B
+around the transition window. Pro mode adds BPM/beat/energy analysis and falls
+back to Lite behavior per transition. AutoMix returns `true` from
+`onTrackEnded` during handoff to prevent double-advancing.
 
 > Compatibility: the existing `useAutomix` hook remains exported for older code,
-> but direct hook usage is deprecated.
+> but direct hook usage is deprecated. `createAutomixProPlugin()` remains as a
+> wrapper for `createAutomixPlugin({ mode: "pro" })`.
+
+### `WaveformPlugin`
+
+Renders the wavesurfer.js scrubber through the `progress` render slot:
+
+```ts
+createWaveformPlugin({
+  height: 48,
+})
+```
+
+The engine remains the playback owner; the waveform only renders peaks and
+forwards seek callbacks. The standalone `showWaveform` prop remains as a
+legacy wrapper around this plugin.
 
 ---
 

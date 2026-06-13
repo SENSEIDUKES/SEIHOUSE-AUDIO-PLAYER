@@ -34,14 +34,23 @@ type Phase = "idle" | "preloading" | "fading" | "handoff"
  */
 let fadeUnsupported = false
 
+export type AutomixMode = "lite" | "pro"
+
 export interface AutomixPluginConfig {
     name?: string
     /** Master switch. When false the plugin does nothing at all. */
     enabled?: boolean
     /**
+     * Transition analysis mode. "lite" uses silence-trimmed fixed crossfades;
+     * "pro" adds BPM/beat/energy analysis and falls back to Lite per pair.
+     */
+    mode?: AutomixMode
+    /**
      * Automix Pro: beat/BPM/energy analysis drives fade timing and duration.
      * Falls back to Lite behavior per track pair whenever the analysis is
      * unavailable or below the confidence threshold. Default false.
+     *
+     * @deprecated Use `mode: "pro"` instead.
      */
     pro?: boolean
     /** Minimum normalized rhythm confidence (0..1) for Pro transitions. */
@@ -84,13 +93,17 @@ export class AutomixPlugin implements AudioPlayerPlugin {
     constructor(config: AutomixPluginConfig = {}) {
         this.name = config.name ?? "automix"
         this.enabled = config.enabled ?? true
-        this.pro = config.pro ?? false
+        this.pro = (config.mode ?? (config.pro ? "pro" : "lite")) === "pro"
         this.proConfidenceMin = config.proConfidenceMin ?? PRO_CONFIDENCE_MIN
         this.onTransitionChange = config.onTransitionChange
     }
 
     get isTransitioning() {
         return this.transitioning
+    }
+
+    getMode(): AutomixMode {
+        return this.pro ? "pro" : "lite"
     }
 
     init(playerInstance: PluginPlayerContext) {
@@ -105,11 +118,12 @@ export class AutomixPlugin implements AudioPlayerPlugin {
         this.prevSourceKey = null
     }
 
-    updateConfig(config: Pick<AutomixPluginConfig, "enabled" | "pro">) {
+    updateConfig(config: Pick<AutomixPluginConfig, "enabled" | "mode" | "pro">) {
         const nextEnabled = config.enabled ?? this.enabled
         if (this.enabled && !nextEnabled) this.cancel()
         this.enabled = nextEnabled
-        this.pro = config.pro ?? this.pro
+        if (config.mode !== undefined) this.pro = config.mode === "pro"
+        else if (config.pro !== undefined) this.pro = config.pro
         this.analyzeCurrentTrack()
     }
 
@@ -609,5 +623,5 @@ export function createAutomixPlugin(config?: AutomixPluginConfig) {
  * trustworthy analysis fall back to Lite behavior automatically.
  */
 export function createAutomixProPlugin(config?: Omit<AutomixPluginConfig, "pro">) {
-    return new AutomixPlugin({ ...config, pro: true })
+    return new AutomixPlugin({ ...config, mode: "pro" })
 }

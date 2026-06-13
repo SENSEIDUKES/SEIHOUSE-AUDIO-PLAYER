@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react"
 import type { AudioPlayerTheme, Track } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
-import { ProgressBar } from "../components/ProgressBar"
 import { formatTime } from "../utils/formatTime"
 import { trackKey } from "../utils/trackKey"
 import { buildThemeVars } from "./themeVars"
+import { renderSessionProgress } from "./renderSessionProgress"
 import { PauseIcon, PlayIcon, SpinnerIcon } from "./icons"
 import "./skins.css"
 
@@ -73,16 +73,11 @@ export function VaultRowPlayer({
                 </span>
                 {isActive ? (
                     <span className="ap-vr__progress">
-                        <ProgressBar
-                            currentTime={s.currentTime}
-                            duration={s.duration}
-                            buffered={s.buffered}
-                            disabled={!s.hasAudio}
-                            isSeeking={s.isSeeking}
-                            onSeek={s.seek}
-                            onSeekStart={() => s.setSeeking(true)}
-                            onSeekEnd={() => s.setSeeking(false)}
-                        />
+                        {renderSessionProgress(s, {
+                            hostId: "vault-row",
+                            height: 24,
+                            ...theme,
+                        })}
                     </span>
                 ) : (
                     <span className="ap-vr__artist" title={track.artist}>

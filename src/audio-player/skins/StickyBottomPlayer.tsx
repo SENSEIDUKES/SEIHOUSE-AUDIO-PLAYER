@@ -3,12 +3,12 @@ import type { CSSProperties } from "react"
 import type { AudioPlayerTheme } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { QueueDrawer } from "../components/QueueDrawer"
-import { ProgressBar } from "../components/ProgressBar"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
 import { useShareTrack } from "../components/useShareTrack"
 import { formatTime } from "../utils/formatTime"
 import { buildThemeVars } from "./themeVars"
+import { renderSessionProgress } from "./renderSessionProgress"
 import {
     Back10Icon,
     DotsIcon,
@@ -177,16 +177,11 @@ export function StickyBottomPlayer({
                     </div>
                     <div className="ap-sb__scrub">
                         <span className="ap-sb__t" aria-hidden="true">{formatTime(s.currentTime)}</span>
-                        <ProgressBar
-                            currentTime={s.currentTime}
-                            duration={s.duration}
-                            buffered={s.buffered}
-                            disabled={!s.hasAudio}
-                            isSeeking={s.isSeeking}
-                            onSeek={s.seek}
-                            onSeekStart={() => s.setSeeking(true)}
-                            onSeekEnd={() => s.setSeeking(false)}
-                        />
+                        {renderSessionProgress(s, {
+                            hostId: "sticky-bottom",
+                            height: 24,
+                            ...theme,
+                        })}
                         <span className="ap-sb__t" aria-hidden="true">{formatTime(s.duration)}</span>
                     </div>
                 </div>

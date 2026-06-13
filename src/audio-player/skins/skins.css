@@ -19,6 +19,13 @@
 .ap-sea__progress .ap-progress {
     flex: 1;
 }
+.ap-vr__progress .ap-waveform,
+.ap-sb__scrub .ap-waveform,
+.ap-sea__progress .ap-waveform {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+}
 
 
 /* ----------------------------- Art / hero sizing -----------------------------

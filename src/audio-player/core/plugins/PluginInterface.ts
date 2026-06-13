@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import type { AudioPlayerEngine, RepeatMode, Track } from "../../types"
 
 /** Playback/control surface exposed to plugins without coupling them to React. */
@@ -47,6 +48,38 @@ export type PluginHookArgs = {
 
 export type PluginHookResult = boolean | void
 
+export type PluginRenderSlot = "progress"
+
+export interface PluginProgressSlotProps {
+    /** Stable host surface identifier, e.g. "audio-player" or "sticky-bottom". */
+    hostId: string
+    currentTime: number
+    duration: number
+    buffered: number
+    disabled: boolean
+    isSeeking: boolean
+    onSeek: (time: number) => void
+    onSeekStart: () => void
+    onSeekEnd: () => void
+    currentTrack: Track | null
+    sourceKey: string
+    /** Precomputed waveform peaks for the current track, when available. */
+    peaks?: number[][]
+    peaksDuration?: number
+    /** Decoded PCM for the active source, when the backend owns it. */
+    getDecodedData?: () => AudioBuffer | null
+    /** Audio URL for plugins that need a fetch/decode fallback. */
+    url?: string
+    height?: number
+    waveColor?: string
+    progressColor?: string
+    cursorColor?: string
+}
+
+export type PluginRenderSlotProps = {
+    progress: PluginProgressSlotProps
+}
+
 /**
  * Standard SEIHouse audio plugin interface.
  *
@@ -60,6 +93,10 @@ export interface AudioPlayerPlugin {
     handlesKeyboardShortcuts?: boolean
     init: (playerInstance: PluginPlayerContext) => void | (() => void)
     destroy: () => void
+    renderSlot?: <K extends PluginRenderSlot>(
+        slot: K,
+        props: PluginRenderSlotProps[K]
+    ) => ReactNode | null
     onTrackLoad?: (track: Track | null) => PluginHookResult
     onPlay?: () => PluginHookResult
     onPause?: () => PluginHookResult

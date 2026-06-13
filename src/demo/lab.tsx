@@ -9,10 +9,11 @@ import {
     MiniSidebarPlayer,
     SeaCardPlayer,
     createAnalyticsPlugin,
-    createAutomixProPlugin,
+    createAutomixPlugin,
     createKeyboardShortcutPlugin,
     createLyricsPlugin,
     createSleepTimerPlugin,
+    createWaveformPlugin,
     formatTime,
     getTrackAnalysis,
     useAudioPlayer,
@@ -350,15 +351,16 @@ function PluginArchitectureSection() {
     )
 }
 
-/* ----------------------------- Automix Pro demo ----------------------------- */
+/* ----------------------------- AutoMix Pro mode demo ----------------------------- */
 function AutomixProSection() {
     const [transitioning, setTransitioning] = useState(false)
     const [readout, setReadout] = useState("analyzing…")
 
     const proPlugins = useMemo(
         () => [
-            createAutomixProPlugin({
+            createAutomixPlugin({
                 name: "demo-automix-pro",
+                mode: "pro",
                 onTransitionChange: setTransitioning,
             }),
         ],
@@ -390,17 +392,17 @@ function AutomixProSection() {
     return (
         <section className="lab-section">
             <h2 className="lab-section__title">
-                Automix Pro
+                AutoMix Pro mode
                 <small>beat-near · energy-aware</small>
             </h2>
             <p className="lab-section__desc">
-                <code>createAutomixProPlugin()</code> analyzes each track in a
+                <code>createAutomixPlugin(&#123; mode: "pro" &#125;)</code> analyzes each track in a
                 worker (essentia.js BPM/beat extraction, lazy-loaded WASM) and
                 drives crossfade timing from the metadata: fades start on a
                 beat, BPM-compatible high-energy pairs blend longer, tempo
-                clashes fade short, and low-confidence pairs fall back to
-                Automix Lite. Note the player&apos;s own Automix Lite switch
-                stays off — the plugin owns the transitions here.
+                clashes fade short, and low-confidence pairs fall back to Lite
+                mode. The player&apos;s legacy AutoMix toggle stays off because
+                the plugin owns the transitions here.
             </p>
             <div className="lab-section__grid">
                 <div className="lab-states">
@@ -573,6 +575,10 @@ function PluginRegistrySection() {
 /* ----------------------------- Waveform demo ----------------------------- */
 function WaveformSection() {
     const [backend, setBackend] = useState<AudioBackendKind>("html5")
+    const waveformPlugins = useMemo(
+        () => [createWaveformPlugin({ name: "demo-waveform" })],
+        []
+    )
 
     return (
         <section className="lab-section">
@@ -581,7 +587,7 @@ function WaveformSection() {
                 <small>wavesurfer.js scrubber</small>
             </h2>
             <p className="lab-section__desc">
-                <code>showWaveform</code> swaps the progress bar for a
+                <code>createWaveformPlugin()</code> swaps the progress bar for a
                 wavesurfer.js waveform that doubles as the scrubber. The engine
                 stays the only playback owner — wavesurfer just renders peaks
                 and forwards clicks/drags. Under <code>webaudio</code> the
@@ -614,7 +620,7 @@ function WaveformSection() {
                             <AudioPlayer
                                 key={backend}
                                 audioBackend={backend}
-                                showWaveform
+                                plugins={waveformPlugins}
                                 tracks={playlist}
                                 showTracklist
                                 repeatMode="all"

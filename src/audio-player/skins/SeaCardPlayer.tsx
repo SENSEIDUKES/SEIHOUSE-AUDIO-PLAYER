@@ -1,9 +1,9 @@
 import type { CSSProperties } from "react"
 import type { AudioPlayerTheme, Track } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
-import { ProgressBar } from "../components/ProgressBar"
 import { trackKey } from "../utils/trackKey"
 import { buildThemeVars } from "./themeVars"
+import { renderSessionProgress } from "./renderSessionProgress"
 import { PauseIcon, PlayIcon, SpinnerIcon } from "./icons"
 import "./skins.css"
 
@@ -75,16 +75,11 @@ export function SeaCardPlayer({
                 <div className="ap-sea__artist" title={track.artist}>{track.artist}</div>
                 {isActive && (
                     <div className="ap-sea__progress">
-                        <ProgressBar
-                            currentTime={s.currentTime}
-                            duration={s.duration}
-                            buffered={s.buffered}
-                            disabled={!s.hasAudio}
-                            isSeeking={s.isSeeking}
-                            onSeek={s.seek}
-                            onSeekStart={() => s.setSeeking(true)}
-                            onSeekEnd={() => s.setSeeking(false)}
-                        />
+                        {renderSessionProgress(s, {
+                            hostId: "sea-card",
+                            height: 24,
+                            ...theme,
+                        })}
                     </div>
                 )}
             </div>

@@ -23,7 +23,6 @@ import {
 } from "../SleepTimerPlugin"
 import {
     createAutomixPlugin,
-    createAutomixProPlugin,
 } from "../AutomixPlugin"
 
 /* ------------------------------------------------------------------ */
@@ -76,7 +75,7 @@ export interface PluginRegistrySnapshot {
 /*  Global available-plugin catalogue                                  */
 /* ------------------------------------------------------------------ */
 
-const availablePlugins: PluginRegistryEntry[] = [
+export const availablePlugins: PluginRegistryEntry[] = [
     {
         id: "keyboard-shortcuts",
         label: "Keyboard Shortcuts",
@@ -147,24 +146,14 @@ const availablePlugins: PluginRegistryEntry[] = [
         category: "ui",
     },
     {
-        id: "automix-lite",
-        label: "Automix Lite",
+        id: "automix",
+        label: "AutoMix",
         description:
-            "Crossfade transitions between playlist tracks. " +
-            "Uses silence-based trim detection. No WASM or worker required.",
+            "Crossfade transitions between playlist tracks. Defaults to Lite " +
+            "silence trimming; use createAutomixPlugin({ mode: \"pro\" }) for " +
+            "beat-aware transitions.",
         factory: () =>
-            createAutomixPlugin({ name: "registry-automix-lite" }),
-        defaultActive: false,
-        category: "playback",
-    },
-    {
-        id: "automix-pro",
-        label: "Automix Pro",
-        description:
-            "BPM/beat-aware crossfades backed by essentia.js (WASM). " +
-            "Lazily loads the analysis worker on first run.",
-        factory: () =>
-            createAutomixProPlugin({ name: "registry-automix-pro" }),
+            createAutomixPlugin({ name: "registry-automix", mode: "lite" }),
         defaultActive: false,
         category: "playback",
     },
