@@ -52,7 +52,10 @@ const FONT_WEIGHTS = [
     { value: 800, label: "Extrabold" },
 ]
 
-const THEME_PRESETS: { label: string; theme: Required<AudioPlayerTheme> }[] = [
+const THEME_PRESETS: {
+    label: string
+    theme: Required<Omit<AudioPlayerTheme, "glowColor">>
+}[] = [
     {
         label: "OG Glass",
         theme: {

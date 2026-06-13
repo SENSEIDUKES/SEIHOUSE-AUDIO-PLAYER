@@ -1,7 +1,7 @@
 {
   "name": "@seihouse/audio-player",
   "version": "1.0.0",
-  "description": "Portable custom audio player (React + TypeScript) — zero-dependency core with optional lazy-loaded Automix Pro analysis and wavesurfer.js waveforms",
+  "description": "Portable custom audio player (React + TypeScript) — zero-dependency core with optional lazy-loaded Automix beat analysis and wavesurfer.js waveforms",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

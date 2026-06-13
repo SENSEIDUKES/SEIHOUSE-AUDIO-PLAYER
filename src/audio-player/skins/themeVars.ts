@@ -15,6 +15,7 @@ export function buildThemeVars(theme: AudioPlayerTheme = {}): CSSProperties {
         progressColor = "#FFFFFF",
         trackColor = "rgba(204, 204, 204, 0.35)",
         backgroundColor = "rgba(20, 20, 28, 0.6)",
+        glowColor = "transparent",
     } = theme
     return {
         "--ap-accent": accentColor,
@@ -23,5 +24,6 @@ export function buildThemeVars(theme: AudioPlayerTheme = {}): CSSProperties {
         "--ap-progress": progressColor,
         "--ap-track": trackColor,
         "--ap-bg": backgroundColor,
+        "--ap-glow": glowColor,
     } as CSSProperties
 }

@@ -39,19 +39,22 @@ export interface AutomixPluginConfig {
     /** Master switch. When false the plugin does nothing at all. */
     enabled?: boolean
     /**
-     * Automix Pro: beat/BPM/energy analysis drives fade timing and duration.
-     * Falls back to Lite behavior per track pair whenever the analysis is
-     * unavailable or below the confidence threshold. Default false.
+     * Minimum normalized rhythm confidence (0..1) required before beat/BPM
+     * analysis steers a transition. Pairs below this — or with no analysis at
+     * all — fall back automatically to light-mode (silence-trim) crossfades.
      */
-    pro?: boolean
-    /** Minimum normalized rhythm confidence (0..1) for Pro transitions. */
-    proConfidenceMin?: number
+    confidenceMin?: number
     /** Optional bridge for React UIs that want to expose transition state. */
     onTransitionChange?: (isTransitioning: boolean) => void
 }
 
 /**
- * Automix Lite as a lifecycle plugin.
+ * Automix as a lifecycle plugin.
+ *
+ * One plugin, automatic fallback: it always attempts rich, beat/BPM-aware
+ * transitions (the "pro" path) and degrades per track-pair to light-mode
+ * silence-trim crossfades whenever rhythm analysis is unavailable, the browser
+ * locks element volume, or confidence is below `confidenceMin`.
  *
  * The implementation intentionally mirrors the legacy `useAutomix` hook: the
  * main engine audio element remains deck A/source-of-truth, while this plugin
@@ -76,16 +79,14 @@ export class AutomixPlugin implements AudioPlayerPlugin {
     private failedPair: string | null = null
     private prevSourceKey: string | null = null
     private transitioning = false
-    private pro: boolean
-    private readonly proConfidenceMin: number
+    private readonly confidenceMin: number
     private plan: TransitionPlan | null = null
     private activeFadeMs = AUTOMIX_FADE_MS
 
     constructor(config: AutomixPluginConfig = {}) {
         this.name = config.name ?? "automix"
         this.enabled = config.enabled ?? true
-        this.pro = config.pro ?? false
-        this.proConfidenceMin = config.proConfidenceMin ?? PRO_CONFIDENCE_MIN
+        this.confidenceMin = config.confidenceMin ?? PRO_CONFIDENCE_MIN
         this.onTransitionChange = config.onTransitionChange
     }
 
@@ -105,11 +106,10 @@ export class AutomixPlugin implements AudioPlayerPlugin {
         this.prevSourceKey = null
     }
 
-    updateConfig(config: Pick<AutomixPluginConfig, "enabled" | "pro">) {
+    updateConfig(config: Pick<AutomixPluginConfig, "enabled">) {
         const nextEnabled = config.enabled ?? this.enabled
         if (this.enabled && !nextEnabled) this.cancel()
         this.enabled = nextEnabled
-        this.pro = config.pro ?? this.pro
         this.analyzeCurrentTrack()
     }
 
@@ -187,9 +187,14 @@ export class AutomixPlugin implements AudioPlayerPlugin {
         }
     }
 
-    /** Pro behavior is pointless where fades can't run (volume-locked browsers). */
+    /**
+     * Whether to attempt rich (beat/BPM-aware) analysis. Always on, except
+     * where fades can't run at all (volume-locked browsers), since beat-aware
+     * timing is pointless without crossfades. Per-pair confidence still decides
+     * whether a given transition uses the rich plan or the light fallback.
+     */
     private usePro(): boolean {
-        return this.pro && !fadeUnsupported
+        return !fadeUnsupported
     }
 
     private ensureAnalysis(track: Track): Promise<unknown> {
@@ -566,7 +571,7 @@ export class AutomixPlugin implements AudioPlayerPlugin {
                     incoming,
                     engine.duration * 1000,
                     AUTOMIX_FADE_MS,
-                    this.proConfidenceMin
+                    this.confidenceMin
                 )
                 if (candidate.usedPro) plan = candidate
             }
@@ -599,15 +604,11 @@ export class AutomixPlugin implements AudioPlayerPlugin {
     }
 }
 
+/**
+ * Create the Automix plugin. BPM/beat/energy analysis steers fade timing and
+ * length when available; any pair without trustworthy analysis falls back to
+ * light-mode silence-trim crossfades automatically.
+ */
 export function createAutomixPlugin(config?: AutomixPluginConfig) {
     return new AutomixPlugin(config)
-}
-
-/**
- * Automix Pro: an `AutomixPlugin` with metadata-driven transitions enabled.
- * BPM, beats, and energy steer fade timing and length; pairs without
- * trustworthy analysis fall back to Lite behavior automatically.
- */
-export function createAutomixProPlugin(config?: Omit<AutomixPluginConfig, "pro">) {
-    return new AutomixPlugin({ ...config, pro: true })
 }

@@ -9,7 +9,7 @@ import {
     MiniSidebarPlayer,
     SeaCardPlayer,
     createAnalyticsPlugin,
-    createAutomixProPlugin,
+    createAutomixPlugin,
     createKeyboardShortcutPlugin,
     createLyricsPlugin,
     createSleepTimerPlugin,
@@ -350,15 +350,15 @@ function PluginArchitectureSection() {
     )
 }
 
-/* ----------------------------- Automix Pro demo ----------------------------- */
-function AutomixProSection() {
+/* ----------------------------- Automix demo ----------------------------- */
+function AutomixSection() {
     const [transitioning, setTransitioning] = useState(false)
     const [readout, setReadout] = useState("analyzing…")
 
     const proPlugins = useMemo(
         () => [
-            createAutomixProPlugin({
-                name: "demo-automix-pro",
+            createAutomixPlugin({
+                name: "demo-automix",
                 onTransitionChange: setTransitioning,
             }),
         ],
@@ -390,23 +390,24 @@ function AutomixProSection() {
     return (
         <section className="lab-section">
             <h2 className="lab-section__title">
-                Automix Pro
-                <small>beat-near · energy-aware</small>
+                Automix
+                <small>beat-near · energy-aware · auto-fallback</small>
             </h2>
             <p className="lab-section__desc">
-                <code>createAutomixProPlugin()</code> analyzes each track in a
+                <code>createAutomixPlugin()</code> analyzes each track in a
                 worker (essentia.js BPM/beat extraction, lazy-loaded WASM) and
                 drives crossfade timing from the metadata: fades start on a
                 beat, BPM-compatible high-energy pairs blend longer, tempo
-                clashes fade short, and low-confidence pairs fall back to
-                Automix Lite. Note the player&apos;s own Automix Lite switch
-                stays off — the plugin owns the transitions here.
+                clashes fade short, and low-confidence pairs fall back
+                automatically to light-mode silence-trim crossfades. Note the
+                player&apos;s own Automix switch stays off — the plugin owns the
+                transitions here.
             </p>
             <div className="lab-section__grid">
                 <div className="lab-states">
                     <div className="lab-state">
                         <h3 className="lab-state__title">
-                            Pro transitions {transitioning ? "· crossfading…" : ""}
+                            Automix transitions {transitioning ? "· crossfading…" : ""}
                         </h3>
                         <div className="lab-state__player">
                             <AudioPlayer
@@ -885,7 +886,7 @@ export function Lab() {
                     <PluginRegistrySection />
                 </PluginRegistryProvider>
 
-                <AutomixProSection />
+                <AutomixSection />
             </LabGroup>
 
             <LabGroup title="Backends & waveform">

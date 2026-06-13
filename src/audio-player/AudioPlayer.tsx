@@ -155,6 +155,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         progressColor = "#FFFFFF",
         trackColor = "rgba(204, 204, 204, 0.35)",
         backgroundColor = "rgba(255, 255, 255, 0)",
+        glowColor = "transparent",
         plugins: externalPlugins = EMPTY_PLUGINS,
         audioBackend = "html5",
         className,
@@ -685,6 +686,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         "--ap-progress": progressColor,
         "--ap-track": trackColor,
         "--ap-bg": backgroundColor,
+        "--ap-glow": glowColor,
         "--ap-blur": `${blurSize}px`,
     } as CSSProperties
 

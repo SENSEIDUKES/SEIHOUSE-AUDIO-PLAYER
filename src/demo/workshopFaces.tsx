@@ -35,7 +35,7 @@ export type WorkshopControlGroup =
 /* Flat, JSON-serializable settings superset shared by every face. Each face
    reads only the slices it supports, so switching faces keeps your edits. */
 export interface WorkshopSettings {
-    theme: Required<AudioPlayerTheme>
+    theme: Required<Omit<AudioPlayerTheme, "glowColor">>
     backgroundImageSrc: string
     blurSize: number
     darkenAmount: number

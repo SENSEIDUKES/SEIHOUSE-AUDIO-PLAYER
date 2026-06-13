@@ -9,8 +9,11 @@ export { WebAudioBackend } from "./core/audio/WebAudioBackend"
 export {
     AutomixPlugin,
     createAutomixPlugin,
-    createAutomixProPlugin,
 } from "./plugins/AutomixPlugin"
+export {
+    AutoThemePlugin,
+    createAutoThemePlugin,
+} from "./plugins/AutoThemePlugin"
 export {
     KeyboardShortcutPlugin,
     createKeyboardShortcutPlugin,
@@ -49,6 +52,14 @@ export {
 export { formatTime } from "./utils/formatTime"
 export { trackKey } from "./utils/trackKey"
 export { checkCodecSupport } from "./utils/checkCodecSupport"
+export {
+    extractPalette,
+    quantizePixels,
+    relativeLuminance,
+    contrastText,
+    rgbToCss,
+    gradient,
+} from "./utils/colorExtraction"
 export { ProgressBar } from "./components/ProgressBar"
 export { VolumeControl } from "./components/VolumeControl"
 export { WaveformProgress } from "./components/WaveformProgress"
@@ -118,6 +129,12 @@ export type {
 export type { WaveformProgressProps } from "./components/WaveformProgress"
 export type { ComputedPeaks } from "./core/waveform/peaks"
 export type { AutomixPluginConfig } from "./plugins/AutomixPlugin"
+export type { AutoThemePluginConfig } from "./plugins/AutoThemePlugin"
+export type {
+    ArtworkPalette,
+    ExtractPaletteOptions,
+    Rgb,
+} from "./utils/colorExtraction"
 export type { KeyboardShortcutPluginConfig } from "./plugins/KeyboardShortcutPlugin"
 export type {
     AnalyticsEventPayload,

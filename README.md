@@ -101,22 +101,25 @@ This allows SEIHouse to keep the playback behavior consistent while designing di
 
 ---
 
-## Automix Lite
+## Automix
 
-**Automix Lite** is an opt-in transition system for smoother playlist movement.
+**Automix** is an opt-in transition system for smoother playlist movement. It is
+a single plugin (`createAutomixPlugin()`) with automatic fallback: it crossfades
+between tracks and, when per-track BPM/beat/energy analysis is confident, steers
+fade timing and length from that metadata — otherwise every transition degrades
+gracefully to **light mode** (a conservative, silence-trimmed equal-power fade).
 
-Current behavior includes two-deck crossfade transitions with an approximately 5.5 second equal-power fade and conservative RMS-based silence trimming so fades can skip dead air instead of fading through empty space.
-
-Automix Lite can be toggled from:
+The built-in light-mode crossfade is also available without the plugin via the
+`automix` prop, and can be toggled from:
 
 - the standalone player's ellipsis menu in playlist mode,
 - the `FullCardPlayer` transport row,
 - the `StickyBottomPlayer` transport row,
 - or programmatically through `SessionEngine.toggleAutomix()` / the `automix` props.
 
-With Automix Lite off, normal playback behavior is unchanged.
+With Automix off, normal playback behavior is unchanged.
 
-See [`docs/automix-lite.md`](./docs/automix-lite.md) for details, fallbacks, and known limits.
+See [`docs/automix.md`](./docs/automix.md) for details, fallbacks, and known limits.
 
 ---
 

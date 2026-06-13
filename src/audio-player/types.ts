@@ -38,6 +38,11 @@ export interface AudioPlayerTheme {
     trackColor?: string
     /** Player background tint (sits over the optional background image). */
     backgroundColor?: string
+    /**
+     * Ambient glow color around the player root. Defaults to transparent
+     * (no glow); the Auto Theme plugin sets it from the artwork.
+     */
+    glowColor?: string
 }
 
 export interface BackgroundImage {

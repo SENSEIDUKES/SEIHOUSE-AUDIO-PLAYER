@@ -23,8 +23,10 @@ import {
 } from "../SleepTimerPlugin"
 import {
     createAutomixPlugin,
-    createAutomixProPlugin,
 } from "../AutomixPlugin"
+import {
+    createAutoThemePlugin,
+} from "../AutoThemePlugin"
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -147,26 +149,27 @@ const availablePlugins: PluginRegistryEntry[] = [
         category: "ui",
     },
     {
-        id: "automix-lite",
-        label: "Automix Lite",
+        id: "automix",
+        label: "Automix",
         description:
-            "Crossfade transitions between playlist tracks. " +
-            "Uses silence-based trim detection. No WASM or worker required.",
+            "Beat/BPM-aware crossfades between playlist tracks, with automatic " +
+            "light-mode fallback (silence-based trims) when analysis is " +
+            "unavailable or low-confidence. No setup required.",
         factory: () =>
-            createAutomixPlugin({ name: "registry-automix-lite" }),
+            createAutomixPlugin({ name: "registry-automix" }),
         defaultActive: false,
         category: "playback",
     },
     {
-        id: "automix-pro",
-        label: "Automix Pro",
+        id: "auto-theme",
+        label: "Auto Theme",
         description:
-            "BPM/beat-aware crossfades backed by essentia.js (WASM). " +
-            "Lazily loads the analysis worker on first run.",
+            "Derives the player's accent, progress gradient, background tint, " +
+            "text contrast, and ambient glow from the album artwork.",
         factory: () =>
-            createAutomixProPlugin({ name: "registry-automix-pro" }),
+            createAutoThemePlugin({ name: "registry-auto-theme" }),
         defaultActive: false,
-        category: "playback",
+        category: "ui",
     },
 ]
 
