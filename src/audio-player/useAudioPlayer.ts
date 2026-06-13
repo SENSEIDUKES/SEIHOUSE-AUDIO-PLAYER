@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { AudioPlayerEngine, BufferedRange, Track, UseAudioPlayerOptions } from "./types"
 import type { AudioBackend } from "./core/audio/AudioBackend"
 import { createAudioBackend } from "./core/audio/AudioBackendFactory"
+import { shouldEnterBuffering } from "./utils/buffering"
 
 /**
  * Headless audio engine. Owns a playback backend (HTML5 `<audio>` element by
@@ -444,6 +445,9 @@ export function useAudioPlayer(
         const handlePause = () => {
             isPlayingRef.current = false
             setIsPlaying(false)
+            // Pausing ends any active playback wait; never leave the spinner
+            // armed once playback has stopped.
+            setIsBuffering(false)
             stopLoop()
             // Snap to the exact paused position (the throttled loop may lag).
             currentTimeRef.current = backend.getCurrentTime()
@@ -452,6 +456,7 @@ export function useAudioPlayer(
         const handleEnded = () => {
             isPlayingRef.current = false
             setIsPlaying(false)
+            setIsBuffering(false)
             stopLoop()
             // Snap to exact duration so the progress bar reaches 100% even when
             // the rAF loop's throttle left it a frame short.
@@ -471,7 +476,20 @@ export function useAudioPlayer(
                 setCurrentTime(clamped)
             }
         }
-        const handleWaiting = () => setIsBuffering(true)
+        const handleWaiting = () => {
+            // `waiting`/`stalled` also fire during passive preload while paused;
+            // only treat them as buffering when playback is actually active or a
+            // play attempt is pending, otherwise the spinner appears at idle/0:00.
+            if (
+                shouldEnterBuffering({
+                    isPlaying: isPlayingRef.current,
+                    isPaused: backend.isPaused(),
+                    hasPendingPlay: playPromiseRef.current !== null,
+                })
+            ) {
+                setIsBuffering(true)
+            }
+        }
         const clearBuffering = () => setIsBuffering(false)
         const handleError = () => {
             setIsBuffering(false)

@@ -71,6 +71,8 @@ export function FullCardPlayer({
 
     const themeVars = buildThemeVars(theme)
     const isEmpty = queue.length === 0
+    // Spinner only while actually playing — never at idle/paused.
+    const showPlaySpinner = isBuffering && isPlaying
 
     const handleOpenQueue = useCallback(() => setQueueDrawerOpen(true), [])
     const handleCloseQueue = useCallback(() => setQueueDrawerOpen(false), [])
@@ -248,9 +250,9 @@ export function FullCardPlayer({
                     className={`ap-btn ap-btn--play ap-tap${isPlaying ? " ap-btn--play-active" : ""}`}
                     onClick={s.toggle}
                     disabled={!hasAudio}
-                    aria-label={isBuffering ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
+                    aria-label={showPlaySpinner ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
                 >
-                    {isBuffering ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
+                    {showPlaySpinner ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>
                 <button
                     type="button"
