@@ -25,6 +25,8 @@ export function MiniSidebarPlayer({
 }: MiniSidebarPlayerProps) {
     const s = useAudioSession()
     const { currentTrack, isPlaying, isBuffering, hasAudio } = s
+    // Spinner only while actually playing — never at idle/paused.
+    const showPlaySpinner = isBuffering && isPlaying
     const empty = !currentTrack
 
     return (
@@ -52,9 +54,9 @@ export function MiniSidebarPlayer({
                 className="ap-btn ap-btn--play ap-ms__play ap-tap"
                 onClick={s.toggle}
                 disabled={!hasAudio}
-                aria-label={isBuffering ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
+                aria-label={showPlaySpinner ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
             >
-                {isBuffering ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
+                {showPlaySpinner ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
             </button>
             <button
                 type="button"

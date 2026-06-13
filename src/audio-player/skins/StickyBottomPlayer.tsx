@@ -64,6 +64,8 @@ export function StickyBottomPlayer({
     if (s.queue.length === 0 || !s.currentTrack) return null
 
     const { currentTrack, isPlaying, isBuffering, shuffle, repeatMode, automix } = s
+    // Spinner only while actually playing — never at idle/paused.
+    const showPlaySpinner = isBuffering && isPlaying
 
     return (
         <div
@@ -142,9 +144,9 @@ export function StickyBottomPlayer({
                             className={`ap-btn ap-btn--play ap-sb__play ap-tap${isPlaying ? " ap-btn--play-active" : ""}`}
                             onClick={s.toggle}
                             disabled={!s.hasAudio}
-                            aria-label={isBuffering ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
+                            aria-label={showPlaySpinner ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
                         >
-                            {isBuffering ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
+                            {showPlaySpinner ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
                         </button>
                         <button
                             type="button"

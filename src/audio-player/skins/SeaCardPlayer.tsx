@@ -41,7 +41,8 @@ export function SeaCardPlayer({
     const s = useAudioSession()
     const isActive = s.currentTrack ? sameTrack(s.currentTrack, track) : false
     const isPlayingThis = isActive && s.isPlaying
-    const isBufferingThis = isActive && s.isBuffering
+    // Spinner only while this track is actually playing — never at idle/paused.
+    const isBufferingThis = isPlayingThis && s.isBuffering
 
     const handleToggle = () => {
         if (isActive) s.toggle()

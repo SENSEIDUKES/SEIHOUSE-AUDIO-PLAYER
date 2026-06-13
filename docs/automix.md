@@ -8,9 +8,20 @@ gracefully to **light mode**: a conservative, silence-trimmed equal-power
 crossfade. There is no "lite vs pro" choice to make — `createAutomixPlugin()`
 does both.
 
-> The player's built-in `automix` prop (and the `useAutomix` hook /
-> `AudioSessionProvider`) is the standalone light-mode crossfade. Don't enable it
-> on the same player as the Automix plugin — that would run a second crossfade.
+> The player's built-in `automix` prop / menu toggle (and `AudioSessionProvider`)
+> now drives a **single internal `AutomixPlugin`** through the same plugin system
+> external plugins use — there is only ever one Automix controller. If you also
+> pass your own Automix plugin via `plugins`, that external plugin wins and the
+> internal one is omitted automatically, so the two can never both run and
+> double-advance the queue. (The legacy `useAutomix` hook still exists but is
+> deprecated and no longer mounted internally.)
+>
+> **Memoize the `plugins` array.** Pass a stable reference (e.g.
+> `useMemo(() => [createAutomixPlugin()], [])`). An inline array
+> (`plugins={[createAutomixPlugin()]}`) changes identity on every render, and the
+> playback loop re-renders ~60×/s — that would destroy and recreate the plugin
+> each frame and break transitions mid-fade. In dev the player warns when it
+> detects this.
 
 ## Light mode (always available, the fallback floor)
 
@@ -93,7 +104,8 @@ plugin and shows each track's live analysis readout.
 | essentia.js worker + client | `src/audio-player/automix/rhythmWorker.ts`, `rhythmClient.ts` |
 | Pure transition math (unit-tested) | `src/audio-player/automix/transitionPlanner.ts` |
 | IndexedDB analysis cache | `src/audio-player/automix/analysisStore.ts` |
-| Standalone light-mode hook + built-in toggle | `src/audio-player/automix/useAutomix.ts`, `AudioPlayer.tsx` |
+| Built-in `automix` prop/menu → internal plugin wiring | `AudioPlayer.tsx`, `session/AudioSessionContext.tsx`, `plugins/automixIntegration.ts` |
+| Deprecated standalone light-mode hook (no longer mounted) | `src/audio-player/automix/useAutomix.ts` |
 
 The `AutomixPlugin` always attempts rich analysis (`usePro()` is on except where
 fades are impossible); per-pair confidence in `planTransition` decides whether a
