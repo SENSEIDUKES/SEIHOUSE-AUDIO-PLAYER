@@ -14,7 +14,12 @@ import type {
 import type { AudioPlayerProps, RepeatMode, Track } from "./types"
 import type { AudioPlayerPlugin, PluginPlayerContext } from "./core/plugins/PluginInterface"
 import { useAudioPlayer } from "./useAudioPlayer"
-import { useAutomix } from "./automix/useAutomix"
+import { AutomixPlugin, createAutomixPlugin } from "./plugins/AutomixPlugin"
+import {
+    AUTOMIX_PLUGIN_NAME,
+    hasAutomixPlugin,
+    withInternalAutomix,
+} from "./plugins/automixIntegration"
 import { useMediaSessionObserver } from "./headless/useMediaSessionObserver"
 import { usePluginManager } from "./core/plugins/usePluginManager"
 import { ProgressBar } from "./components/ProgressBar"
@@ -294,6 +299,12 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         dismissAutoplayBlocked,
     } = engine
 
+    // `isBuffering` is the engine's gated source of truth: it is only true
+    // during active or pending-play waiting, and is cleared on
+    // pause/ended/error/source-reset. So the spinner renders straight from it —
+    // no idle/paused spinner, but the initial pending-play load still shows one.
+    const showPlaySpinner = isBuffering
+
     const goToTrack = useCallback(
         (next: number | null) => {
             if (!isPlaylistMode || next === null) return
@@ -343,14 +354,6 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     }
     const requestAdvance = useCallback(() => advanceToNextRef.current(), [])
 
-    const automixNextIndex =
-        localAutomix && isPlaylistMode && localRepeatMode !== "one"
-            ? stepTrackIndex(trackIndex, 1)
-            : null
-    const automixNextTrack =
-        automixNextIndex !== null && automixNextIndex !== trackIndex
-            ? localQueue[automixNextIndex] ?? null
-            : null
     const pluginNextIndex =
         isPlaylistMode && localRepeatMode !== "one"
             ? stepTrackIndex(trackIndex, 1)
@@ -360,15 +363,30 @@ function AudioPlayerInner(props: AudioPlayerProps) {
             ? localQueue[pluginNextIndex] ?? null
             : null
 
-    const automixCtl = useAutomix({
-        engine,
-        enabled: localAutomix && isPlaylistMode,
-        sourceKey,
-        currentTrack,
-        nextTrack: automixNextTrack,
-        requestAdvance,
-        suppressDeprecatedWarning: true,
-    })
+    // Automix runs through a single internal plugin (the same lifecycle plugin
+    // external consumers use). Created once so its identity is stable across
+    // renders — the rAF playback loop re-renders ~60/s and an unstable plugin
+    // identity would make usePluginManager destroy/recreate it every frame.
+    const automixPluginRef = useRef<AutomixPlugin | null>(null)
+    if (automixPluginRef.current === null) {
+        automixPluginRef.current = createAutomixPlugin({
+            name: AUTOMIX_PLUGIN_NAME,
+            // Enabled is driven entirely by the effect below (from the prop/menu).
+            enabled: false,
+        })
+    }
+    // If the consumer already supplied an external automix plugin, it wins and
+    // the internal one is omitted entirely — only ever one Automix controller.
+    const hasExternalAutomix = hasAutomixPlugin(externalPlugins)
+    const automixEnabled =
+        localAutomix && isPlaylistMode && !hasExternalAutomix
+    useEffect(() => {
+        automixPluginRef.current?.updateConfig({ enabled: automixEnabled })
+    }, [automixEnabled])
+    const allPlugins = useMemo<readonly AudioPlayerPlugin[]>(
+        () => withInternalAutomix(externalPlugins, automixPluginRef.current!),
+        [externalPlugins]
+    )
 
     const pluginContextStateRef = useRef({
         engine,
@@ -415,13 +433,15 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         }),
         []
     )
-    const pluginManager = usePluginManager(externalPlugins, pluginContext)
+    const pluginManager = usePluginManager(allPlugins, pluginContext)
     const hasKeyboardShortcutPlugin = externalPlugins.some(
         (plugin) => plugin.handlesKeyboardShortcuts
     )
 
+    // Single advance path: whichever plugin (internal automix or an external
+    // one) claims the track-end suppresses the host advance, so a crossfade
+    // handoff can never double-advance the queue.
     advanceRef.current = () => {
-        if (automixCtl.handleTrackEnded()) return
         if (pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
         advanceToNextRef.current()
     }
@@ -942,14 +962,14 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                         aria-label={
                             !hasAudio
                                 ? "Audio file missing"
-                                : isBuffering
+                                : showPlaySpinner
                                   ? "Buffering audio"
                                   : isPlaying
                                     ? "Pause"
                                     : "Play"
                         }
                     >
-                        {isBuffering ? (
+                        {showPlaySpinner ? (
                             <SpinnerIcon />
                         ) : isPlaying ? (
                             <PauseIcon />

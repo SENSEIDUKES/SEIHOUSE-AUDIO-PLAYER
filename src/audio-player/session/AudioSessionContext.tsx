@@ -19,7 +19,12 @@ import type {
     PluginPlayerContext,
 } from "../core/plugins/PluginInterface"
 import { useAudioPlayer } from "../useAudioPlayer"
-import { useAutomix } from "../automix/useAutomix"
+import { AutomixPlugin, createAutomixPlugin } from "../plugins/AutomixPlugin"
+import {
+    AUTOMIX_PLUGIN_NAME,
+    hasAutomixPlugin,
+    withInternalAutomix,
+} from "../plugins/automixIntegration"
 import { usePluginManager } from "../core/plugins/usePluginManager"
 import { trackKey } from "../utils/trackKey"
 
@@ -171,15 +176,9 @@ export function AudioSessionProvider({
     }
     const requestAdvance = useCallback(() => advanceToNextRef.current(), [])
 
-    // Resolve the automixable next track through the same order/repeat logic a
-    // natural advance would use. Null disables transitions (repeat-one, end of
-    // queue with repeat off, or a single-track wrap).
-    const automixNextIndex =
-        automix && repeatMode !== "one" ? stepIndex(currentIndex, 1) : null
-    const automixNextTrack =
-        automixNextIndex !== null && automixNextIndex !== currentIndex
-            ? queue[automixNextIndex] ?? null
-            : null
+    // Resolve the next track through the same order/repeat logic a natural
+    // advance would use. Null disables transitions (repeat-one, end of queue
+    // with repeat off, or a single-track wrap).
     const pluginNextIndex =
         repeatMode !== "one" ? stepIndex(currentIndex, 1) : null
     const pluginNextTrack =
@@ -187,15 +186,27 @@ export function AudioSessionProvider({
             ? queue[pluginNextIndex] ?? null
             : null
 
-    const automixCtl = useAutomix({
-        engine,
-        enabled: automix,
-        sourceKey,
-        currentTrack,
-        nextTrack: automixNextTrack,
-        requestAdvance,
-        suppressDeprecatedWarning: true,
-    })
+    // Automix runs through a single internal plugin created once (stable
+    // identity so the rAF-driven re-renders never destroy/recreate it). An
+    // external automix plugin, if supplied, wins and the internal one is
+    // omitted — only ever one Automix controller.
+    const automixPluginRef = useRef<AutomixPlugin | null>(null)
+    if (automixPluginRef.current === null) {
+        automixPluginRef.current = createAutomixPlugin({
+            name: AUTOMIX_PLUGIN_NAME,
+            // Enabled is driven entirely by the effect below (from the prop).
+            enabled: false,
+        })
+    }
+    const hasExternalAutomix = hasAutomixPlugin(externalPlugins)
+    const automixEnabled = automix && !hasExternalAutomix
+    useEffect(() => {
+        automixPluginRef.current?.updateConfig({ enabled: automixEnabled })
+    }, [automixEnabled])
+    const allPlugins = useMemo<readonly AudioPlayerPlugin[]>(
+        () => withInternalAutomix(externalPlugins, automixPluginRef.current!),
+        [externalPlugins]
+    )
 
     const pluginContextStateRef = useRef({
         engine,
@@ -229,7 +240,7 @@ export function AudioSessionProvider({
         }),
         []
     )
-    const pluginManager = usePluginManager(externalPlugins, pluginContext)
+    const pluginManager = usePluginManager(allPlugins, pluginContext)
 
     const seekWithPlugins = useCallback(
         (time: number) => {
@@ -275,10 +286,10 @@ export function AudioSessionProvider({
     // End-of-track auto-advance: always continue into the next track. We force
     // the deferred play here because the engine has already flipped its internal
     // "was playing" flag to false by the time onEnded fires, so its own continue
-    // path won't run. Automix gets first claim: when a crossfade already moved
-    // (or is moving) the queue, the normal advance must not run again.
+    // path won't run. A plugin (internal automix or external) gets first claim:
+    // when a crossfade already moved (or is moving) the queue, the normal
+    // advance must not run again.
     advanceRef.current = () => {
-        if (automixCtl.handleTrackEnded()) return
         if (pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
         advanceToNextRef.current()
     }

@@ -41,6 +41,8 @@ export function SeaCardPlayer({
     const s = useAudioSession()
     const isActive = s.currentTrack ? sameTrack(s.currentTrack, track) : false
     const isPlayingThis = isActive && s.isPlaying
+    // Engine gates `isBuffering` to active/pending playback; scope it to this
+    // card so only the active track's button can spin.
     const isBufferingThis = isActive && s.isBuffering
 
     const handleToggle = () => {
