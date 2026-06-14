@@ -42,8 +42,12 @@ export function surfaceReducer(
             return { mode: state.mode === "queue" ? "default" : "queue" }
         case "open":
             if (action.mode === "canvas" && !canEnterCanvas(face)) return state
+            // Preserve referential equality when nothing changes so consumers
+            // don't re-render needlessly.
+            if (state.mode === action.mode) return state
             return { mode: action.mode }
         case "close":
+            if (state.mode === "default") return state
             return INITIAL_SURFACE_STATE
         default:
             return state

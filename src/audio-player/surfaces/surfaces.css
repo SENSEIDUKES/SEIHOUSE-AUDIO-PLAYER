@@ -41,11 +41,15 @@
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.28s ease, opacity 0.2s ease;
+    /* `visibility: hidden` also pulls focusable children out of the tab order
+       while closed; transitioning it keeps the open/close animation smooth. */
+    visibility: hidden;
+    transition: max-height 0.28s ease, opacity 0.2s ease, visibility 0.28s;
 }
 .ap-sei-canvas-host[data-open="true"] {
     max-height: 360px;
     opacity: 1;
+    visibility: visible;
 }
 .ap-sei-canvas-host__inner {
     padding: 4px 0;
@@ -226,11 +230,14 @@
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.25s ease, opacity 0.18s ease;
+    /* See .ap-sei-canvas-host: keep closed children out of the tab order. */
+    visibility: hidden;
+    transition: max-height 0.25s ease, opacity 0.18s ease, visibility 0.25s;
 }
 .ap-ms__surface[data-open="true"] {
     max-height: 260px;
     opacity: 1;
+    visibility: visible;
 }
 
 /* ----------------------------- Narrow / motion ----------------------------- */

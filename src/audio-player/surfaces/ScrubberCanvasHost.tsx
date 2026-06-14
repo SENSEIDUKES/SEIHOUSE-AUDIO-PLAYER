@@ -45,7 +45,10 @@ export function ScrubberCanvasHost({
             data-density={density}
             data-face={face}
             data-surface-id={activeSurfaceId}
-            aria-valuenow={Math.round(progress * 100)}
+            // Plain data hook for future plugins/styling. The real progressbar
+            // ARIA lives on the child ProgressBar; `aria-valuenow` would be
+            // invalid here without a slider/progressbar role.
+            data-progress={Math.round(progress * 100)}
         >
             {children ?? (
                 <FallbackScrubber

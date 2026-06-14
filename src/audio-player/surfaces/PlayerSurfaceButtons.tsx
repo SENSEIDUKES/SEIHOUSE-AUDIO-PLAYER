@@ -29,11 +29,13 @@ export function PlayerSurfaceButtons({
             role="group"
             aria-label="Player surfaces"
         >
+            {/* Static labels: aria-pressed (on SurfaceButton) communicates the
+                toggle state, so the label must not also change with state. */}
             {showCanvasButton && (
                 <SurfaceButton
                     active={surface.isCanvasOpen}
                     onClick={surface.toggleCanvas}
-                    label={surface.isCanvasOpen ? "Hide canvas" : "Show canvas"}
+                    label="SEI Canvas"
                 >
                     <CanvasIcon />
                 </SurfaceButton>
@@ -42,7 +44,7 @@ export function PlayerSurfaceButtons({
                 <SurfaceButton
                     active={surface.isQueueOpen}
                     onClick={surface.toggleQueue}
-                    label={surface.isQueueOpen ? "Hide queue" : "Up next"}
+                    label="Up next"
                 >
                     <QueueIcon />
                 </SurfaceButton>
