@@ -88,7 +88,7 @@ export function MiniSidebarPlayer({
             />
 
             <div className="ap-ms__surface" data-open={surface.isQueueOpen ? "true" : "false"}>
-                <QueueSurface maxItems={6} />
+                {surface.isQueueOpen && <QueueSurface maxItems={6} />}
             </div>
         </div>
     )
