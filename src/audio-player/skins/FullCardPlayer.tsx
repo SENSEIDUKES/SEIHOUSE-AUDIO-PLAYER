@@ -298,6 +298,15 @@ export function FullCardPlayer({
                             peaks={currentTrack?.peaks}
                             peaksDuration={currentTrack?.waveformDuration}
                             getDecodedData={s.getDecodedData}
+                            // Fetch+decode fallback (html5 only) so tracks without
+                            // precomputed peaks can still draw a waveform; webaudio
+                            // supplies decoded PCM. wavesurfer stays visual-only —
+                            // the engine remains the sole playback owner.
+                            url={
+                                s.getBackendInfo().active === "html5"
+                                    ? currentTrack?.audioFile
+                                    : undefined
+                            }
                             sourceKey={currentTrack ? trackKey(currentTrack) : undefined}
                         />
                         <div className="ap-times" aria-hidden="true">

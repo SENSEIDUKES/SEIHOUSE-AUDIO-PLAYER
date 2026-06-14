@@ -55,6 +55,10 @@ export function SeaCardPlayer({
     const s = useAudioSession()
     const surface = usePlayerSurface("seaCard")
     const isActive = s.currentTrack ? sameTrack(s.currentTrack, track) : false
+    // Only promise a waveform overlay when we actually have peak data to draw;
+    // otherwise the overlay would just show another progress bar (a confusing
+    // duplicate of the inline scrubber).
+    const hasPeaks = (track.peaks?.length ?? 0) > 0 && (track.peaks?.[0]?.length ?? 0) > 0
     const isPlayingThis = isActive && s.isPlaying
     // Engine gates `isBuffering` to active/pending playback; scope it to this
     // card so only the active track's button can spin.
@@ -93,7 +97,7 @@ export function SeaCardPlayer({
                     overlay shows the playing track's waveform with live seek. A
                     small, unobtrusive button — NOT the full radial menu, keeping
                     the card clean and tap-to-play. */}
-                {isActive && (
+                {isActive && hasPeaks && (
                     <button
                         type="button"
                         className="ap-icon-btn ap-tap ap-sea__wave-btn"
@@ -108,7 +112,9 @@ export function SeaCardPlayer({
             <div className="ap-sea__body">
                 <div className="ap-sea__title" title={track.title}>{track.title}</div>
                 <div className="ap-sea__artist" title={track.artist}>{track.artist}</div>
-                {isActive && (
+                {/* Hide the inline scrubber while the waveform overlay is open so
+                    the card never shows two scrubbers at once. */}
+                {isActive && !surface.isCanvasOpen && (
                     <div className="ap-sea__progress">
                         {/* ScrubberCanvasHost (Phase 3): timeline zone for the
                             active card; ProgressBar passed through as children so
