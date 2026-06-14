@@ -125,6 +125,17 @@ class AudioPlayerErrorBoundary extends Component<
     }
 }
 
+/**
+ * The standalone, self-contained player (`PLAYER_FACE_CAPABILITIES.portable`).
+ *
+ * Unlike the session-based skins, it owns its own transport, ProgressBar /
+ * waveform, and SAPController three-dot menu directly rather than going through
+ * the shared surface infrastructure. Accordingly its capability declares
+ * `supportsContextualActions: false` (no radial `PlayerSurfaceButtons` menu);
+ * its canvas/scrubber host capabilities are forward-looking for a later phase.
+ * Deep actions (queue, info, share, playback modes) live in the SAPController,
+ * and mobile volume follows the Phase 1 `defaultShowVolume()` default.
+ */
 export function AudioPlayer(props: AudioPlayerProps) {
     return (
         <AudioPlayerErrorBoundary fallbackTitle="Audio player failed to render">

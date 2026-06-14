@@ -29,6 +29,12 @@ function sameTrack(a: Track, b: Track): boolean {
  * play button that plays its track in the global session. When its track is the
  * active one it shows live progress and a pause state, kept in sync with every
  * other skin through the shared engine.
+ *
+ * Capability-driven (`PLAYER_FACE_CAPABILITIES.seaCard`): a marketplace card.
+ * `supportsContextualActions: false`, so it renders no contextual menu — taps on
+ * the card are about previewing/playing the track, not deep actions. It declares
+ * an overlay SEICanvas placement for a future phase, but the card itself renders
+ * only art + inline progress today; it does not mount the canvas/scrubber hosts.
  */
 export function SeaCardPlayer({
     track,

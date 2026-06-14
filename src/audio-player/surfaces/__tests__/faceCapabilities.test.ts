@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
     PLAYER_FACE_CAPABILITIES,
+    faceSupportsContextualActions,
     faceSupportsHeroCollapse,
     faceSupportsSEICanvas,
     faceSupportsScrubberCanvas,
@@ -37,6 +38,25 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
     it("makes ScrubberCanvas available on every face", () => {
         for (const face of ALL_FACES) {
             expect(faceSupportsScrubberCanvas(face)).toBe(true)
+        }
+    })
+
+    it("enables the contextual radial menu only on faces that render it", () => {
+        // fullCard + miniSidebar host PlayerSurfaceButtons; the rest rely on the
+        // SAPController three-dot sheet (or have no menu room) and must opt out.
+        expect(faceSupportsContextualActions("fullCard")).toBe(true)
+        expect(faceSupportsContextualActions("miniSidebar")).toBe(true)
+        expect(faceSupportsContextualActions("portable")).toBe(false)
+        expect(faceSupportsContextualActions("seaCard")).toBe(false)
+        expect(faceSupportsContextualActions("stickyBottom")).toBe(false)
+        expect(faceSupportsContextualActions("vaultRow")).toBe(false)
+    })
+
+    it("declares supportsContextualActions for every face", () => {
+        for (const face of ALL_FACES) {
+            expect(
+                typeof PLAYER_FACE_CAPABILITIES[face].supportsContextualActions
+            ).toBe("boolean")
         }
     })
 

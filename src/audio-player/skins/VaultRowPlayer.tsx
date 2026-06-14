@@ -28,6 +28,12 @@ function sameTrack(a: Track, b: Track): boolean {
  * else appending). When this row is the active track it shows live progress and
  * its play button mirrors the global play state — so it stays in sync with every
  * other skin.
+ *
+ * Capability-driven (`PLAYER_FACE_CAPABILITIES.vaultRow`): the most compact face.
+ * `supportsSEICanvas: false` and `supportsContextualActions: false` — a list row
+ * has no room for canvas or menu surfaces, so it renders neither the SEICanvas
+ * host nor `PlayerSurfaceButtons`. Its inline ProgressBar is the scrubber, and
+ * deep actions belong to whatever container hosts the row list.
  */
 export function VaultRowPlayer({
     track,

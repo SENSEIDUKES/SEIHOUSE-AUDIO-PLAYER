@@ -23,6 +23,14 @@ export type PlayerFaceCapability = {
     supportsSEICanvas: boolean
     /** May host the ScrubberCanvas timeline zone. Available on every face. */
     supportsScrubberCanvas: boolean
+    /**
+     * Renders the contextual action menu (the bottom-arc SEI Canvas Action Menu /
+     * "command wheel") via `PlayerSurfaceButtons`. This is the radial, in-context
+     * affordance — distinct from the `SAPController` three-dot deep-action sheet,
+     * which faces own separately. Compact faces that rely solely on the three-dot
+     * menu (or have no room for a menu at all) declare this `false`.
+     */
+    supportsContextualActions: boolean
     /** Hero can collapse into a compact identity header when a surface opens. */
     supportsHeroCollapse?: boolean
     /** Where the canvas prefers to live relative to the face. */
@@ -32,15 +40,32 @@ export type PlayerFaceCapability = {
 }
 
 /**
- * Declared capabilities for all faces. Phase 1 physically wires up `fullCard`
- * and `miniSidebar`; the rest declare capabilities so the model is complete and
- * honest for future phases and tests, without changing their rendering.
+ * Declared capabilities for all faces — the contract every face renders against.
+ *
+ * Wiring status (what physically renders today vs. what is a forward-looking
+ * declaration for later phases):
+ * - `fullCard`     — fully wired: SEICanvas, ScrubberCanvas, contextual menu.
+ * - `miniSidebar`  — wired: ScrubberCanvas + contextual menu (no SEICanvas).
+ * - `portable`     — self-contained standalone; owns its own SAPController and
+ *                    ProgressBar. Canvas/scrubber hosts are declared for a later
+ *                    phase, so its host capabilities stay `false` until wired to
+ *                    avoid implying zones that don't render.
+ * - `seaCard`      — overlay-canvas declaration for a future phase; the card
+ *                    itself renders only art + inline progress today.
+ * - `stickyBottom` — compact bar; deep actions live in its SAPController, so it
+ *                    declares no contextual (radial) menu.
+ * - `vaultRow`     — slim list row; transport + inline progress only.
+ *
+ * `supportsContextualActions` is the source of truth for the radial command-wheel
+ * menu (`PlayerSurfaceButtons` → `SEICanvasActionMenu`). It is independent of the
+ * three-dot `SAPController`, which any face may host for deep actions.
  */
 export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> =
     {
         fullCard: {
             supportsSEICanvas: true,
             supportsScrubberCanvas: true,
+            supportsContextualActions: true,
             supportsHeroCollapse: true,
             preferredCanvasPlacement: "main",
             scrubberDensity: "standard",
@@ -48,6 +73,9 @@ export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> 
         portable: {
             supportsSEICanvas: true,
             supportsScrubberCanvas: true,
+            // Standalone player draws its own transport/menu; no surface-button
+            // contextual menu today.
+            supportsContextualActions: false,
             supportsHeroCollapse: true,
             preferredCanvasPlacement: "main",
             scrubberDensity: "expanded",
@@ -55,6 +83,7 @@ export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> 
         seaCard: {
             supportsSEICanvas: true,
             supportsScrubberCanvas: true,
+            supportsContextualActions: false,
             supportsHeroCollapse: true,
             preferredCanvasPlacement: "overlay",
             scrubberDensity: "standard",
@@ -62,6 +91,7 @@ export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> 
         miniSidebar: {
             supportsSEICanvas: false,
             supportsScrubberCanvas: true,
+            supportsContextualActions: true,
             supportsHeroCollapse: false,
             preferredCanvasPlacement: "none",
             scrubberDensity: "compact",
@@ -69,6 +99,7 @@ export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> 
         stickyBottom: {
             supportsSEICanvas: false,
             supportsScrubberCanvas: true,
+            supportsContextualActions: false,
             supportsHeroCollapse: false,
             preferredCanvasPlacement: "none",
             scrubberDensity: "compact",
@@ -76,6 +107,7 @@ export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> 
         vaultRow: {
             supportsSEICanvas: false,
             supportsScrubberCanvas: true,
+            supportsContextualActions: false,
             supportsHeroCollapse: false,
             preferredCanvasPlacement: "none",
             scrubberDensity: "compact",
@@ -92,6 +124,10 @@ export function faceSupportsSEICanvas(face: PlayerFace): boolean {
 
 export function faceSupportsScrubberCanvas(face: PlayerFace): boolean {
     return getFaceCapability(face).supportsScrubberCanvas
+}
+
+export function faceSupportsContextualActions(face: PlayerFace): boolean {
+    return getFaceCapability(face).supportsContextualActions
 }
 
 export function faceSupportsHeroCollapse(face: PlayerFace): boolean {

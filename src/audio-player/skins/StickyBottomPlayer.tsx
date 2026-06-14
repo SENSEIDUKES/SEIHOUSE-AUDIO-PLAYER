@@ -41,6 +41,12 @@ export interface StickyBottomPlayerProps extends AudioPlayerTheme {
  * so it reflects and controls whatever any other skin is doing. Core transport
  * only — shuffle, repeat, automix, queue, info, and share live in the SAP
  * Controller behind the "…" button. Renders nothing when the queue is empty.
+ *
+ * Capability-driven (`PLAYER_FACE_CAPABILITIES.stickyBottom`): a compact bar
+ * with `supportsContextualActions: false` — deep actions and queue access route
+ * through its SAPController three-dot sheet instead of a radial menu, so it does
+ * not render `PlayerSurfaceButtons`. `supportsSEICanvas: false` (no canvas
+ * zone). Its inline ProgressBar serves as the scrubber.
  */
 export function StickyBottomPlayer({
     fixed = true,

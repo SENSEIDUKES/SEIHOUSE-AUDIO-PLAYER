@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useReducer } from "react"
-import { faceSupportsSEICanvas } from "./faceCapabilities"
+import {
+    faceSupportsContextualActions,
+    faceSupportsSEICanvas,
+} from "./faceCapabilities"
 import type { PlayerFace } from "./faceCapabilities"
 import {
     INITIAL_SURFACE_STATE,
@@ -16,6 +19,8 @@ export interface UsePlayerSurfaceResult {
     isHeroCollapsed: boolean
     /** Whether this face can host the SEICanvas at all. */
     canvasSupported: boolean
+    /** Whether this face renders the contextual (radial) action menu. */
+    contextualSupported: boolean
     toggleCanvas: () => void
     toggleQueue: () => void
     closeSurface: () => void
@@ -42,6 +47,7 @@ export function usePlayerSurface(face: PlayerFace): UsePlayerSurfaceResult {
             isQueueOpen: state.mode === "queue",
             isHeroCollapsed: deriveHeroCollapsed(state.mode, face),
             canvasSupported: faceSupportsSEICanvas(face),
+            contextualSupported: faceSupportsContextualActions(face),
             toggleCanvas,
             toggleQueue,
             closeSurface,

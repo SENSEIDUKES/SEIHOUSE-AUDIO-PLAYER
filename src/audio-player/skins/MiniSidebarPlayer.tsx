@@ -22,9 +22,13 @@ export interface MiniSidebarPlayerProps extends AudioPlayerTheme {
  * A condensed widget for a sidebar: small art, current track, play/pause + next.
  * Reads the shared session so it always shows what is globally playing.
  *
- * Compact face: no SEICanvas (the left surface button is auto-hidden). It does
- * get a compact ScrubberCanvas and an in-region "Up Next" queue surface behind
- * the right surface button.
+ * Capability-driven (`PLAYER_FACE_CAPABILITIES.miniSidebar`): a compact face.
+ * `supportsSEICanvas: false`, so the canvas zone and its left surface button are
+ * auto-hidden. It keeps a compact ScrubberCanvas (`supportsScrubberCanvas`) and
+ * the contextual radial menu (`supportsContextualActions`) — the latter is its
+ * only path to "Up Next" / actions since it has no three-dot SAPController.
+ * `PlayerSurfaceButtons` reads both flags from the model, so passing `surface`
+ * alone yields the correct buttons without per-face overrides.
  */
 export function MiniSidebarPlayer({
     art = "linear-gradient(135deg,#7C5CFF,#22D3A6)",

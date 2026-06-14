@@ -115,6 +115,7 @@ export {
     getFaceCapability,
     faceSupportsSEICanvas,
     faceSupportsScrubberCanvas,
+    faceSupportsContextualActions,
     faceSupportsHeroCollapse,
     getScrubberDensity,
     getPreferredCanvasPlacement,

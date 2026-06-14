@@ -50,6 +50,14 @@ export interface FullCardPlayerProps extends AudioPlayerTheme {
  * automix, queue, info, and share live in the SAP Controller behind the "…"
  * button. This skin is the designated owner of the autoplay-blocked prompt so
  * users don't see five simultaneous prompts.
+ *
+ * Capability-driven (`PLAYER_FACE_CAPABILITIES.fullCard`): the fully-wired face.
+ * It hosts the SEICanvas (`supportsSEICanvas`), the ScrubberCanvas
+ * (`supportsScrubberCanvas`), and the contextual radial menu
+ * (`supportsContextualActions`, rendered via `PlayerSurfaceButtons`) — none of
+ * these are hard-coded here; each render zone follows the model. The SAP
+ * three-dot controller is always present for deep actions independent of those
+ * capabilities.
  */
 export function FullCardPlayer({
     showVolume = defaultShowVolume(),
