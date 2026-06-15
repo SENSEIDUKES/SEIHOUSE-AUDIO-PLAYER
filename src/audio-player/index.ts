@@ -243,8 +243,12 @@ export type {
 export type { TransitionPlan } from "./automix/transitionPlanner"
 export type {
     Track,
+    TrackArtwork,
+    MusicIdentity,
     TrackTrims,
     TrackAnalysis,
+    PlaybackVisualState,
+    WaveformAvailability,
     AudioPlayerProps,
     AudioPlayerTheme,
     BackgroundImage,

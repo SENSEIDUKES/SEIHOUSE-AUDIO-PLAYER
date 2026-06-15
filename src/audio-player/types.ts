@@ -13,6 +13,12 @@ export interface Track {
     title: string
     artist: string
     audioFile: string
+    /** Canonical identity metadata for premium/official player faces. */
+    identity?: MusicIdentity
+    /** Convenience album/project label used by Media Session and compact faces. */
+    album?: string
+    /** Track artwork candidates, ordered from most preferred to fallback. */
+    artwork?: TrackArtwork[]
     purchaseUrl?: string
     lyrics?: string
     /**
@@ -22,6 +28,38 @@ export interface Track {
     peaks?: number[][]
     /** Duration in seconds matching `peaks`. Required for peaks-only rendering. */
     waveformDuration?: number
+}
+
+export interface TrackArtwork {
+    src: string
+    alt?: string
+    sizes?: string
+    type?: string
+    width?: number
+    height?: number
+    dominantColor?: string
+}
+
+export interface MusicIdentity {
+    title?: string
+    artistName?: string
+    albumTitle?: string
+    projectTitle?: string
+    releaseTitle?: string
+    edition?: string
+    label?: string
+    year?: string | number
+    catalogId?: string
+    explicit?: boolean
+    artwork?: TrackArtwork[]
+    heroArtwork?: TrackArtwork
+    thumbnailArtwork?: TrackArtwork
+    palette?: {
+        background?: string
+        foreground?: string
+        accent?: string
+        glow?: string
+    }
 }
 
 /** Theme colors. Applied to the player root as CSS custom properties. */
@@ -180,6 +218,25 @@ export interface BufferedRange {
     end: number
 }
 
+export type PlaybackVisualState =
+    | "idle"
+    | "loading-source"
+    | "preparing-play"
+    | "playing"
+    | "buffering"
+    | "paused"
+    | "ended"
+    | "blocked"
+    | "error"
+
+export type WaveformAvailability =
+    | "disabled-by-face"
+    | "disabled-by-prop"
+    | "pending"
+    | "ready"
+    | "unavailable"
+    | "failed-cors-or-decode"
+
 /** Everything the UI needs from the engine hook. */
 export interface AudioPlayerEngine {
     audioRef: React.RefObject<HTMLAudioElement>
@@ -195,6 +252,8 @@ export interface AudioPlayerEngine {
     volume: number
     isMuted: boolean
     isBuffering: boolean
+    /** Explicit UI playback state; spinners should only use loading/preparing/buffering. */
+    playbackVisualState: PlaybackVisualState
     isSeeking: boolean
     hasError: boolean
     errorMessage: string

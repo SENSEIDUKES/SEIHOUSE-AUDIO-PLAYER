@@ -9,6 +9,7 @@ import { WaveformAdapter } from "../components/WaveformAdapter"
 import { PlayerSurfaceButtons } from "../surfaces/PlayerSurfaceButtons"
 import { QueueSurface } from "../surfaces/QueueSurface"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
+import { playbackVisualStateShowsSpinner } from "../utils/playbackVisualState"
 import "./skins.css"
 
 export interface MiniSidebarPlayerProps extends AudioPlayerTheme {
@@ -39,7 +40,8 @@ export function MiniSidebarPlayer({
 }: MiniSidebarPlayerProps) {
     const s = useAudioSession()
     const surface = usePlayerSurface("miniSidebar")
-    const { currentTrack, isPlaying, isBuffering, hasAudio, currentTime, duration } = s
+    const { currentTrack, isPlaying, hasAudio, currentTime, duration } = s
+    const showPlaySpinner = playbackVisualStateShowsSpinner(s.playbackVisualState)
     const empty = !currentTrack
 
     return (
@@ -66,9 +68,9 @@ export function MiniSidebarPlayer({
                     className="ap-btn ap-btn--play ap-ms__play ap-tap"
                     onClick={s.toggle}
                     disabled={!hasAudio}
-                    aria-label={isBuffering ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
+                    aria-label={showPlaySpinner ? "Buffering audio" : isPlaying ? "Pause" : "Play"}
                 >
-                    {isBuffering ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
+                    {showPlaySpinner ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>
                 <button
                     type="button"

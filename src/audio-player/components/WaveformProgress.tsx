@@ -7,6 +7,7 @@ import type WaveSurfer from "wavesurfer.js"
 import { ProgressBar } from "./ProgressBar"
 import { computePeaksFromUrl, extractPeaks } from "../core/waveform/peaks"
 import { formatTime } from "../utils/formatTime"
+import type { WaveformAvailability } from "../types"
 
 export interface WaveformProgressProps {
     // Exact ProgressBar contract — the waveform is a drop-in scrubber.
@@ -39,9 +40,10 @@ export interface WaveformProgressProps {
     waveColor?: string
     progressColor?: string
     cursorColor?: string
+    onAvailabilityChange?: (availability: WaveformAvailability) => void
 }
 
-type WaveformStatus = "pending" | "ready" | "failed"
+type WaveformStatus = "pending" | "ready" | "failed" | "unavailable"
 
 /** Resolve a color prop, falling back to a CSS custom property on the wrapper
  * (canvas fillStyle cannot evaluate `var()` strings). Explicit `var(--x)`
@@ -95,6 +97,7 @@ export function WaveformProgress({
     waveColor,
     progressColor,
     cursorColor,
+    onAvailabilityChange,
 }: WaveformProgressProps) {
     const wrapperRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -102,6 +105,12 @@ export function WaveformProgress({
     const draggingRef = useRef(false)
     const lastDragEndRef = useRef(0)
     const [status, setStatus] = useState<WaveformStatus>("pending")
+    const onAvailabilityChangeRef = useRef(onAvailabilityChange)
+    onAvailabilityChangeRef.current = onAvailabilityChange
+
+    const setAvailability = (next: WaveformAvailability) => {
+        onAvailabilityChangeRef.current?.(next)
+    }
 
     // Callback/value refs so the create effect doesn't re-run when the host
     // re-renders with new closures (engine state changes every frame).
@@ -125,6 +134,7 @@ export function WaveformProgress({
     useEffect(() => {
         let cancelled = false
         setStatus("pending")
+        setAvailability("pending")
 
         const resolvePeaks = async (): Promise<{
             peaks: number[][]
@@ -158,6 +168,8 @@ export function WaveformProgress({
                     // Nothing to draw from (e.g. webaudio before first load).
                     // Stay pending so the ProgressBar fallback keeps working;
                     // the effect re-runs when duration/peaks arrive.
+                    setStatus("unavailable")
+                    setAvailability("unavailable")
                     return
                 }
                 const WaveSurferCtor = (await import("wavesurfer.js")).default
@@ -227,8 +239,12 @@ export function WaveformProgress({
                 wsRef.current = ws
                 ws.setTime(currentTimeRef.current)
                 setStatus("ready")
+                setAvailability("ready")
             } catch {
-                if (!cancelled) setStatus("failed")
+                if (!cancelled) {
+                    setStatus("failed")
+                    setAvailability("failed-cors-or-decode")
+                }
             }
         }
         void run()

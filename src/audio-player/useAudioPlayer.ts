@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { AudioPlayerEngine, BufferedRange, Track, UseAudioPlayerOptions } from "./types"
+import type { AudioPlayerEngine, BufferedRange, PlaybackVisualState, Track, UseAudioPlayerOptions } from "./types"
 import type { AudioBackend } from "./core/audio/AudioBackend"
 import { createAudioBackend } from "./core/audio/AudioBackendFactory"
 import { shouldEnterBuffering } from "./utils/buffering"
@@ -85,6 +85,8 @@ export function useAudioPlayer(
     const [isMuted, setIsMuted] = useState(false)
     const [isSeeking, setIsSeekingState] = useState(false)
     const [isBuffering, setIsBuffering] = useState(false)
+    const [isLoadingSource, setIsLoadingSource] = useState(false)
+    const [isPreparingPlay, setIsPreparingPlay] = useState(false)
     const [hasError, setHasError] = useState(false)
     const [errorMessage, setErrorMessage] = useState("")
     const [autoplayBlocked, setAutoplayBlocked] = useState(false)
@@ -126,6 +128,7 @@ export function useAudioPlayer(
 
             const token = bumpToken()
             clearPendingPlay()
+            setIsPreparingPlay(true)
             setHasError(false)
             setErrorMessage("")
 
@@ -134,6 +137,7 @@ export function useAudioPlayer(
                 playPromise = backend.play()
             } catch {
                 if (playbackTokenRef.current !== token) return
+                setIsPreparingPlay(false)
                 if (reportError) {
                     setHasError(true)
                     setErrorMessage("Playback failed. Please try again.")
@@ -148,12 +152,14 @@ export function useAudioPlayer(
                     if (playPromiseRef.current === playPromise) {
                         playPromiseRef.current = null
                     }
+                    setIsPreparingPlay(false)
                 })
                 .catch((error: unknown) => {
                     if (playbackTokenRef.current !== token) return
                     if (playPromiseRef.current === playPromise) {
                         playPromiseRef.current = null
                     }
+                    setIsPreparingPlay(false)
                     const name = error instanceof Error ? error.name : ""
                     if (name === "AbortError") return
 
@@ -296,6 +302,7 @@ export function useAudioPlayer(
         setErrorMessage("")
         setAutoplayBlocked(false)
         setIsBuffering(true)
+        setIsLoadingSource(true)
         backend.load()
         play(true)
     }, [bumpToken, clearPendingPlay, hasAudio, play])
@@ -304,6 +311,7 @@ export function useAudioPlayer(
         const backend = backendRef.current!
         if (!backend.isAttached() || !hasAudio) return
         bumpToken()
+        setIsLoadingSource(true)
         backend.load()
         play(true)
     }, [bumpToken, hasAudio, play])
@@ -336,6 +344,8 @@ export function useAudioPlayer(
         setHasError(false)
         setErrorMessage("")
         setIsBuffering(false)
+        setIsLoadingSource(false)
+        setIsPreparingPlay(false)
         setAutoplayBlocked(false)
         pendingSeekRef.current = null
         if (fadeFrameRef.current !== null) {
@@ -437,6 +447,8 @@ export function useAudioPlayer(
             isPlayingRef.current = true
             setIsPlaying(true)
             setIsBuffering(false)
+            setIsLoadingSource(false)
+            setIsPreparingPlay(false)
             setAutoplayBlocked(false)
             if (animationFrameRef.current === null) {
                 animationFrameRef.current = requestAnimationFrame(loop)
@@ -448,6 +460,7 @@ export function useAudioPlayer(
             // Pausing ends any active playback wait; never leave the spinner
             // armed once playback has stopped.
             setIsBuffering(false)
+            setIsPreparingPlay(false)
             stopLoop()
             // Snap to the exact paused position (the throttled loop may lag).
             currentTimeRef.current = backend.getCurrentTime()
@@ -457,6 +470,8 @@ export function useAudioPlayer(
             isPlayingRef.current = false
             setIsPlaying(false)
             setIsBuffering(false)
+            setIsLoadingSource(false)
+            setIsPreparingPlay(false)
             stopLoop()
             // Snap to exact duration so the progress bar reaches 100% even when
             // the rAF loop's throttle left it a frame short.
@@ -464,6 +479,7 @@ export function useAudioPlayer(
             onEndedRef.current?.()
         }
         const handleLoadedMetadata = () => {
+            setIsLoadingSource(false)
             const rawDuration = backend.getDuration()
             const loadedDuration = Number.isFinite(rawDuration) ? rawDuration : 0
             setDuration(loadedDuration)
@@ -493,6 +509,8 @@ export function useAudioPlayer(
         const clearBuffering = () => setIsBuffering(false)
         const handleError = () => {
             setIsBuffering(false)
+            setIsLoadingSource(false)
+            setIsPreparingPlay(false)
             isPlayingRef.current = false
             setIsPlaying(false)
             setHasError(true)
@@ -518,6 +536,9 @@ export function useAudioPlayer(
             }
         }
         const handleLoadStart = () => {
+            if (isPlayingRef.current || playPromiseRef.current !== null) {
+                setIsLoadingSource(true)
+            }
             setHasError(false)
             setErrorMessage("")
         }
@@ -603,11 +624,15 @@ export function useAudioPlayer(
             setHasError(false)
             setErrorMessage("")
             setIsBuffering(false)
+            setIsLoadingSource(false)
+            setIsPreparingPlay(false)
             setAutoplayBlocked(false)
             pendingSeekRef.current = null
         }
 
         if (!hasAudio) {
+            setIsLoadingSource(false)
+            setIsPreparingPlay(false)
             backend.clearSource()
             return
         }
@@ -616,6 +641,7 @@ export function useAudioPlayer(
         // for the webaudio backend.
         backend.setSource(src)
         if (!isFirstLoad) {
+            if (shouldPlay) setIsLoadingSource(true)
             backend.load()
         }
         if (shouldPlay) {
@@ -626,22 +652,26 @@ export function useAudioPlayer(
                 try {
                     playPromise = backend.play()
                 } catch {
+                    setIsPreparingPlay(false)
                     return
                 }
                 if (playPromise) {
                     playPromiseRef.current = playPromise
+                    setIsPreparingPlay(true)
                     playPromise
                         .then(() => {
                             if (playbackTokenRef.current !== token) return
                             if (playPromiseRef.current === playPromise) {
                                 playPromiseRef.current = null
                             }
+                            setIsPreparingPlay(false)
                         })
                         .catch((error: unknown) => {
                             if (playbackTokenRef.current !== token) return
                             if (playPromiseRef.current === playPromise) {
                                 playPromiseRef.current = null
                             }
+                            setIsPreparingPlay(false)
                             const name =
                                 error instanceof Error ? error.name : ""
                             if (name === "AbortError") return
@@ -698,6 +728,22 @@ export function useAudioPlayer(
         []
     )
 
+    const playbackVisualState: PlaybackVisualState = hasError
+        ? "error"
+        : autoplayBlocked
+          ? "blocked"
+          : isBuffering
+            ? "buffering"
+            : isPreparingPlay
+              ? "preparing-play"
+              : isLoadingSource
+                ? "loading-source"
+                : isPlaying
+                  ? "playing"
+                  : hasAudio
+                    ? "paused"
+                    : "idle"
+
     return {
         audioRef,
         isPlaying,
@@ -708,6 +754,7 @@ export function useAudioPlayer(
         volume,
         isMuted,
         isBuffering,
+        playbackVisualState,
         isSeeking,
         hasError,
         errorMessage,

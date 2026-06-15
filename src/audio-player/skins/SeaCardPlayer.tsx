@@ -10,6 +10,7 @@ import { SEICanvasHost } from "../surfaces/SEICanvasHost"
 import { PlayerHero } from "../surfaces/PlayerHero"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
 import { buildThemeVars } from "./themeVars"
+import { playbackVisualStateShowsSpinner } from "../utils/playbackVisualState"
 import { PauseIcon, PlayIcon, SpinnerIcon, WaveIcon } from "./icons"
 import "./skins.css"
 
@@ -55,14 +56,11 @@ export function SeaCardPlayer({
     const s = useAudioSession()
     const surface = usePlayerSurface("seaCard")
     const isActive = s.currentTrack ? sameTrack(s.currentTrack, track) : false
-    // Only promise a waveform overlay when we actually have peak data to draw;
-    // otherwise the overlay would just show another progress bar (a confusing
-    // duplicate of the inline scrubber).
-    const hasPeaks = (track.peaks?.length ?? 0) > 0 && (track.peaks?.[0]?.length ?? 0) > 0
+    // When the active card has audio, the overlay attempts automatic waveform
+    // activation (precomputed peaks, decoded PCM, then fetch/decode fallback).
     const isPlayingThis = isActive && s.isPlaying
-    // Engine gates `isBuffering` to active/pending playback; scope it to this
-    // card so only the active track's button can spin.
-    const isBufferingThis = isActive && s.isBuffering
+    // Scope the explicit spinner state to this card so only the active track can spin.
+    const isBufferingThis = isActive && playbackVisualStateShowsSpinner(s.playbackVisualState)
 
     const handleToggle = () => {
         if (isActive) s.toggle()
@@ -97,7 +95,7 @@ export function SeaCardPlayer({
                     overlay shows the playing track's waveform with live seek. A
                     small, unobtrusive button — NOT the full radial menu, keeping
                     the card clean and tap-to-play. */}
-                {isActive && hasPeaks && (
+                {isActive && Boolean(track.audioFile) && (
                     <button
                         type="button"
                         className="ap-icon-btn ap-tap ap-sea__wave-btn"

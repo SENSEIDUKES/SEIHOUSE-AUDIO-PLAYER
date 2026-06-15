@@ -12,6 +12,8 @@ import { defaultShowVolume } from "../utils/device"
 import { trackKey } from "../utils/trackKey"
 import { useMediaSessionObserver } from "../headless/useMediaSessionObserver"
 import { buildThemeVars } from "./themeVars"
+import { playbackVisualStateShowsSpinner } from "../utils/playbackVisualState"
+import { artworkBackground, resolveTrackIdentity } from "../utils/identity"
 import { usePlayerSurface } from "../surfaces/usePlayerSurface"
 import { PlayerHero } from "../surfaces/PlayerHero"
 import { SEICanvasHost } from "../surfaces/SEICanvasHost"
@@ -74,7 +76,6 @@ export function FullCardPlayer({
         currentIndex,
         queue,
         isPlaying,
-        isBuffering,
         currentTime,
         duration,
         buffered,
@@ -94,17 +95,19 @@ export function FullCardPlayer({
     } = s
 
     const themeVars = buildThemeVars(theme)
+    const identity = resolveTrackIdentity(currentTrack)
     const isEmpty = queue.length === 0
-    // Engine gates `isBuffering` to active/pending playback (and clears it on
-    // pause/ended), so the spinner can render straight from it.
-    const showPlaySpinner = isBuffering
+    // Spinner follows the explicit visual playback state, not raw media events.
+    const showPlaySpinner = playbackVisualStateShowsSpinner(s.playbackVisualState)
 
     // Lock-screen / OS media controls. FullCardPlayer is the designated session
     // owner of the autoplay prompt, so it also owns the Media Session wiring to
     // avoid multiple session-based skins registering competing handlers.
     useMediaSessionObserver(s, {
-        title: currentTrack?.title ?? "",
-        artist: currentTrack?.artist ?? "",
+        title: identity.title,
+        artist: identity.artist,
+        album: identity.album ?? identity.project ?? identity.release ?? "",
+        artwork: identity.mediaArtwork,
         sourceKey: currentTrack ? `${currentIndex}:${trackKey(currentTrack)}` : "empty",
         onNext: canNext ? s.next : undefined,
         onPrevious: canPrevious ? s.previous : undefined,
@@ -244,8 +247,19 @@ export function FullCardPlayer({
                 <PlayerHero
                     face="fullCard"
                     collapsed={surface.isHeroCollapsed}
-                    title={currentTrack?.title ?? "Nothing playing"}
-                    artist={currentTrack?.artist ?? "—"}
+                    title={identity.title}
+                    artist={identity.artist}
+                    eyebrow={identity.eyebrow}
+                    detail={identity.detailLine}
+                    art={
+                        identity.thumbnailArtwork ? (
+                            <span
+                                className="ap-hero__art-img"
+                                style={{ backgroundImage: artworkBackground(identity.thumbnailArtwork) }}
+                                aria-hidden="true"
+                            />
+                        ) : undefined
+                    }
                 />
 
                 {/* Main visual surface region. Hidden by default; the left surface
@@ -260,12 +274,22 @@ export function FullCardPlayer({
                     {surface.isQueueOpen ? (
                         <QueueSurface />
                     ) : (
-                        <div className="ap-sei-canvas-placeholder">
+                        <div className="ap-sei-canvas-placeholder ap-sei-canvas-placeholder--identity">
+                            {identity.heroArtwork && (
+                                <span
+                                    className="ap-sei-canvas-placeholder__art"
+                                    style={{ backgroundImage: artworkBackground(identity.heroArtwork) }}
+                                    aria-hidden="true"
+                                />
+                            )}
+                            <span className="ap-sei-canvas-placeholder__eyebrow">
+                                {identity.eyebrow}
+                            </span>
                             <span className="ap-sei-canvas-placeholder__title">
-                                SEI Canvas
+                                {identity.title}
                             </span>
                             <span className="ap-sei-canvas-placeholder__hint">
-                                Placeholder visual area — plugins mount here later.
+                                {identity.detailLine || identity.artist}
                             </span>
                         </div>
                     )}

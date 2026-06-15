@@ -23,6 +23,8 @@ import {
 import { useMediaSessionObserver } from "./headless/useMediaSessionObserver"
 import { usePluginManager } from "./core/plugins/usePluginManager"
 import { WaveformAdapter } from "./components/WaveformAdapter"
+import { resolveTrackIdentity } from "./utils/identity"
+import { playbackVisualStateShowsSpinner } from "./utils/playbackVisualState"
 import { ScrubberCanvasHost } from "./surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "./surfaces/faceCapabilities"
 import { VolumeControl } from "./components/VolumeControl"
@@ -239,7 +241,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
     const currentTrack: Track = useMemo(() => {
         if (isPlaylistMode && localQueue[trackIndex]) return localQueue[trackIndex]
-        return { title, artist, audioFile, purchaseUrl, lyrics }
+        return { title, artist, audioFile, purchaseUrl, lyrics, artwork: backgroundImage?.src ? [{ src: backgroundImage.src, alt: backgroundImage.alt }] : undefined }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         isPlaylistMode,
@@ -250,6 +252,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         audioFile,
         purchaseUrl,
         lyrics,
+        backgroundImage,
     ])
 
     const src = currentTrack.audioFile?.trim() ?? ""
@@ -302,7 +305,6 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         buffered,
         volume,
         isMuted,
-        isBuffering,
         isSeeking,
         hasError,
         errorMessage,
@@ -318,11 +320,8 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         dismissAutoplayBlocked,
     } = engine
 
-    // `isBuffering` is the engine's gated source of truth: it is only true
-    // during active or pending-play waiting, and is cleared on
-    // pause/ended/error/source-reset. So the spinner renders straight from it —
-    // no idle/paused spinner, but the initial pending-play load still shows one.
-    const showPlaySpinner = isBuffering
+    const identity = resolveTrackIdentity(currentTrack)
+    const showPlaySpinner = playbackVisualStateShowsSpinner(engine.playbackVisualState)
 
     const goToTrack = useCallback(
         (next: number | null) => {
@@ -693,12 +692,10 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
     // ── Media Session API (progressive enhancement) ──
     useMediaSessionObserver(pluginAwareEngine, {
-        title: currentTrack.title,
-        artist: currentTrack.artist,
-        album: "",
-        artwork: backgroundImage?.src
-            ? [{ src: backgroundImage.src, sizes: "512x512", type: "image/jpeg" }]
-            : [],
+        title: identity.title,
+        artist: identity.artist,
+        album: identity.album ?? identity.project ?? identity.release ?? "",
+        artwork: identity.mediaArtwork,
         onNext: nextTrack,
         onPrevious: previousTrack,
         sourceKey,
@@ -892,16 +889,16 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                     <div
                         className="ap-track-info__title"
                         style={titleFont}
-                        title={currentTrack.title}
+                        title={identity.title}
                     >
-                        {currentTrack.title}
+                        {identity.title}
                     </div>
                     <div
                         className="ap-track-info__artist"
                         style={artistFont}
-                        title={currentTrack.artist}
+                        title={identity.artist}
                     >
-                        {currentTrack.artist}
+                        {identity.artist}
                     </div>
                 </div>
 

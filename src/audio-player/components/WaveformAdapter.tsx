@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { ProgressBar } from "./ProgressBar"
 import { WaveformProgress } from "./WaveformProgress"
 import {
@@ -5,6 +6,7 @@ import {
     getScrubberHeight,
 } from "../surfaces/faceCapabilities"
 import type { PlayerFace, ScrubberDensity } from "../surfaces/faceCapabilities"
+import type { WaveformAvailability } from "../types"
 
 export interface WaveformAdapterProps {
     /** The face whose capability decides waveform vs. progress by default. */
@@ -41,6 +43,7 @@ export interface WaveformAdapterProps {
      * the face's `supportsWaveform` capability decides.
      */
     waveform?: boolean
+    onAvailabilityChange?: (availability: WaveformAvailability) => void
 }
 
 /**
@@ -75,8 +78,14 @@ export function WaveformAdapter({
     progressColor,
     cursorColor,
     waveform,
+    onAvailabilityChange,
 }: WaveformAdapterProps) {
     const useWaveform = waveform ?? faceSupportsWaveform(face)
+    useEffect(() => {
+        if (!useWaveform) {
+            onAvailabilityChange?.(waveform === false ? "disabled-by-prop" : "disabled-by-face")
+        }
+    }, [useWaveform, waveform, onAvailabilityChange])
 
     if (!useWaveform) {
         return (
@@ -112,6 +121,7 @@ export function WaveformAdapter({
             waveColor={waveColor}
             progressColor={progressColor}
             cursorColor={cursorColor}
+            onAvailabilityChange={onAvailabilityChange}
         />
     )
 }

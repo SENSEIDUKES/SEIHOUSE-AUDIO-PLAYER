@@ -7,6 +7,7 @@ import { trackKey } from "../utils/trackKey"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
 import { buildThemeVars } from "./themeVars"
+import { playbackVisualStateShowsSpinner } from "../utils/playbackVisualState"
 import { PauseIcon, PlayIcon, SpinnerIcon } from "./icons"
 import "./skins.css"
 
@@ -48,9 +49,8 @@ export function VaultRowPlayer({
     const s = useAudioSession()
     const isActive = s.currentTrack ? sameTrack(s.currentTrack, track) : false
     const isPlayingThis = isActive && s.isPlaying
-    // Engine gates `isBuffering` to active/pending playback; scope it to this
-    // row so only the active track's button can spin.
-    const isBufferingThis = isActive && s.isBuffering
+    // Scope the explicit spinner state to this row so only the active track can spin.
+    const isBufferingThis = isActive && playbackVisualStateShowsSpinner(s.playbackVisualState)
 
     const handleToggle = () => {
         if (isActive) s.toggle()

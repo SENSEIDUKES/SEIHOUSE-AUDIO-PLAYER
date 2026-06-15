@@ -7,6 +7,8 @@ export interface PlayerHeroProps {
     collapsed: boolean
     title: string
     artist: string
+    eyebrow?: string
+    detail?: string
     /** Optional art node shown in the compact header. */
     art?: ReactNode
     className?: string
@@ -23,6 +25,8 @@ export function PlayerHero({
     collapsed,
     title,
     artist,
+    eyebrow,
+    detail,
     art,
     className,
 }: PlayerHeroProps) {
@@ -36,12 +40,14 @@ export function PlayerHero({
         >
             {art && <div className="ap-hero__art">{art}</div>}
             <div className="ap-hero__text">
+                {eyebrow && <div className="ap-hero__eyebrow">{eyebrow}</div>}
                 <div className="ap-hero__title" title={title}>
                     {title}
                 </div>
                 <div className="ap-hero__artist" title={artist}>
                     {artist}
                 </div>
+                {detail && <div className="ap-hero__detail" title={detail}>{detail}</div>}
             </div>
         </div>
     )

@@ -27,6 +27,7 @@ import {
 } from "../plugins/automixIntegration"
 import { usePluginManager } from "../core/plugins/usePluginManager"
 import { trackKey } from "../utils/trackKey"
+import { computePeaksFromUrl } from "../core/waveform/peaks"
 
 const AudioSessionContext = createContext<SessionEngine | null>(null)
 const EMPTY_PLUGINS: readonly AudioPlayerPlugin[] = []
@@ -297,6 +298,17 @@ export function AudioSessionProvider({
     useEffect(() => {
         pluginManager.trigger("onTrackLoad", currentTrack)
     }, [pluginManager, sourceKey, currentTrack])
+
+    useEffect(() => {
+        if (engine.getBackendInfo().active !== "html5") return
+        for (const track of [currentTrack, pluginNextTrack]) {
+            if (!track?.audioFile || track.peaks?.[0]?.length) continue
+            void computePeaksFromUrl(track.audioFile).catch(() => {
+                // Waveform activation is opportunistic; the visual component
+                // reports failure and keeps the progress bar if CORS/decode fails.
+            })
+        }
+    }, [engine, currentTrack, pluginNextTrack])
 
     const previousPluginPlayingRef = useRef(engine.isPlaying)
     useEffect(() => {

@@ -12,6 +12,7 @@ import { defaultShowVolume } from "../utils/device"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
 import { buildThemeVars } from "./themeVars"
+import { playbackVisualStateShowsSpinner } from "../utils/playbackVisualState"
 import {
     Back10Icon,
     DotsIcon,
@@ -78,10 +79,9 @@ export function StickyBottomPlayer({
     // the queue transitions between empty and non-empty.
     if (s.queue.length === 0 || !s.currentTrack) return null
 
-    const { currentTrack, isPlaying, isBuffering, shuffle, repeatMode, automix } = s
-    // Engine gates `isBuffering` to active/pending playback (and clears it on
-    // pause/ended), so the spinner can render straight from it.
-    const showPlaySpinner = isBuffering
+    const { currentTrack, isPlaying, shuffle, repeatMode, automix } = s
+    // Spinner follows the explicit visual playback state, not raw media events.
+    const showPlaySpinner = playbackVisualStateShowsSpinner(s.playbackVisualState)
 
     return (
         <div
