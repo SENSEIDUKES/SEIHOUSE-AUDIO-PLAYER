@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react"
-import type { KeyboardEvent } from "react"
+import type { CSSProperties, KeyboardEvent } from "react"
 // Type-only import: erased at compile time, so wavesurfer.js itself is only
 // ever loaded through the dynamic import() below (vite splits it into its own
 // chunk that consumers without showWaveform never download).
 import type WaveSurfer from "wavesurfer.js"
+import type { WaveSurferOptions } from "wavesurfer.js"
 import { ProgressBar } from "./ProgressBar"
 import { computePeaksFromUrl, extractPeaks } from "../core/waveform/peaks"
 import { formatTime } from "../utils/formatTime"
@@ -35,10 +36,21 @@ export interface WaveformProgressProps {
 
     /** Canvas height in px. Default 48. */
     height?: number
+    /** Lower-resolution proof option; limits the rendered peak count. */
+    barCount?: number
+    /** Alias for barCount used by preset/workshop configs. */
+    resolution?: number
+    barWidth?: number
+    barGap?: number
+    barRadius?: number
+    amplitudeScale?: number
+    mirrored?: boolean
     /** Concrete colors. Fall back to --ap-track / --ap-progress / --ap-accent. */
-    waveColor?: string
-    progressColor?: string
+    waveColor?: WaveSurferOptions["waveColor"]
+    progressColor?: WaveSurferOptions["progressColor"]
+    bufferedColor?: string
     cursorColor?: string
+    showCursor?: boolean
 }
 
 type WaveformStatus = "pending" | "ready" | "failed"
@@ -48,10 +60,12 @@ type WaveformStatus = "pending" | "ready" | "failed"
  * values are resolved against the wrapper's computed style too. */
 function resolveColor(
     el: HTMLElement,
-    explicit: string | undefined,
+    explicit: WaveSurferOptions["waveColor"] | undefined,
     cssVar: string,
     fallback: string
-): string {
+): WaveSurferOptions["waveColor"] {
+    if (Array.isArray(explicit)) return explicit
+    if (typeof explicit !== "string") return explicit ?? fallback
     if (explicit) {
         if (!explicit.includes("var(")) return explicit
         const match = explicit.match(/var\(\s*([^,)]+)/)
@@ -64,6 +78,36 @@ function resolveColor(
     }
     const fromVar = getComputedStyle(el).getPropertyValue(cssVar).trim()
     return fromVar || fallback
+}
+
+function resolveStringColor(
+    el: HTMLElement,
+    explicit: string | undefined,
+    cssVar: string,
+    fallback: string
+): string {
+    const resolved = resolveColor(el, explicit, cssVar, fallback)
+    return Array.isArray(resolved) ? resolved[0] ?? fallback : String(resolved)
+}
+
+function reducePeaks(
+    peaks: number[][],
+    targetCount: number | undefined
+): number[][] {
+    if (!targetCount || targetCount <= 0) return peaks
+    return peaks.map((channel) => {
+        if (channel.length <= targetCount) return channel
+        const bucketSize = channel.length / targetCount
+        return Array.from({ length: targetCount }, (_, i) => {
+            const start = Math.floor(i * bucketSize)
+            const end = Math.max(start + 1, Math.floor((i + 1) * bucketSize))
+            let max = 0
+            for (let j = start; j < end && j < channel.length; j++) {
+                max = Math.max(max, Math.abs(channel[j] ?? 0))
+            }
+            return max
+        })
+    })
 }
 
 /**
@@ -92,9 +136,18 @@ export function WaveformProgress({
     url,
     sourceKey,
     height = 48,
+    barCount,
+    resolution,
+    barWidth = 2,
+    barGap = 1,
+    barRadius = 2,
+    amplitudeScale = 1,
+    mirrored = true,
     waveColor,
     progressColor,
+    bufferedColor,
     cursorColor,
+    showCursor = true,
 }: WaveformProgressProps) {
     const wrapperRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -168,18 +221,21 @@ export function WaveformProgress({
                 wsRef.current?.destroy()
                 container.innerHTML = ""
 
+                const peakResolution = resolution ?? barCount
                 const ws = WaveSurferCtor.create({
                     container,
-                    peaks: resolved.peaks,
+                    peaks: reducePeaks(resolved.peaks, peakResolution),
                     duration: resolved.duration,
                     height,
                     normalize: true,
                     interact: true,
                     dragToSeek: false,
-                    barWidth: 2,
-                    barGap: 1,
-                    barRadius: 2,
-                    cursorWidth: 2,
+                    barWidth,
+                    barGap,
+                    barRadius,
+                    barHeight: amplitudeScale,
+                    barAlign: mirrored ? undefined : "bottom",
+                    cursorWidth: showCursor ? 2 : 0,
                     waveColor: resolveColor(
                         wrapper,
                         waveColor,
@@ -192,7 +248,7 @@ export function WaveformProgress({
                         "--ap-progress",
                         "#FFFFFF"
                     ),
-                    cursorColor: resolveColor(
+                    cursorColor: resolveStringColor(
                         wrapper,
                         cursorColor,
                         "--ap-accent",
@@ -240,7 +296,22 @@ export function WaveformProgress({
             wsRef.current = null
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sourceId, hasDuration, peaks, peaksDuration, url, getDecodedData])
+    }, [
+        sourceId,
+        hasDuration,
+        peaks,
+        peaksDuration,
+        url,
+        getDecodedData,
+        barCount,
+        resolution,
+        barWidth,
+        barGap,
+        barRadius,
+        amplitudeScale,
+        mirrored,
+        showCursor,
+    ])
 
     // Push playback position into the waveform (suppressed while dragging).
     const lastPushedRef = useRef(-1)
@@ -259,6 +330,12 @@ export function WaveformProgress({
         if (!ws || !wrapper || status !== "ready") return
         ws.setOptions({
             height,
+            barWidth,
+            barGap,
+            barRadius,
+            barHeight: amplitudeScale,
+            barAlign: mirrored ? undefined : "bottom",
+            cursorWidth: showCursor ? 2 : 0,
             waveColor: resolveColor(
                 wrapper,
                 waveColor,
@@ -271,14 +348,26 @@ export function WaveformProgress({
                 "--ap-progress",
                 "#FFFFFF"
             ),
-            cursorColor: resolveColor(
+            cursorColor: resolveStringColor(
                 wrapper,
                 cursorColor,
                 "--ap-accent",
                 "#FFFFFF"
             ),
         })
-    }, [height, waveColor, progressColor, cursorColor, status])
+    }, [
+        height,
+        barWidth,
+        barGap,
+        barRadius,
+        amplitudeScale,
+        mirrored,
+        showCursor,
+        waveColor,
+        progressColor,
+        cursorColor,
+        status,
+    ])
 
     // Keyboard seeking — mirrors ProgressBar's handler verbatim so the
     // waveform scrubber has full slider-key parity (see ProgressBar.tsx).
@@ -327,7 +416,11 @@ export function WaveformProgress({
         <div
             ref={wrapperRef}
             className={`ap-waveform${isSeeking ? " ap-waveform--seeking" : ""}`}
-            style={{ height: `${height}px` }}
+            style={{
+                height: `${height}px`,
+                "--ap-waveform-buffered": bufferedColor,
+            } as CSSProperties}
+            data-waveform-resolution={resolution ?? barCount ?? undefined}
         >
             <div
                 className="ap-waveform__surface"

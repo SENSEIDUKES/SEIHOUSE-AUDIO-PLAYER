@@ -22,7 +22,7 @@ import {
 } from "./plugins/automixIntegration"
 import { useMediaSessionObserver } from "./headless/useMediaSessionObserver"
 import { usePluginManager } from "./core/plugins/usePluginManager"
-import { WaveformAdapter } from "./components/WaveformAdapter"
+import { ScrubberPluginHost } from "./scrubber/ScrubberPluginHost"
 import { ScrubberCanvasHost } from "./surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "./surfaces/faceCapabilities"
 import { VolumeControl } from "./components/VolumeControl"
@@ -176,6 +176,8 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         showVolume = defaultShowVolume(),
         showWaveform = false,
         waveformHeight = 48,
+        waveformConfig,
+        scrubberPlugin,
         titleFont,
         artistFont,
         accentColor = "#FFFFFF",
@@ -930,10 +932,9 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                         progress={duration > 0 ? currentTime / duration : 0}
                         onSeek={seekWithPlugins}
                     >
-                        <WaveformAdapter
+                        <ScrubberPluginHost
                             face="portable"
                             density={getScrubberDensity("portable")}
-                            waveform={showWaveform}
                             currentTime={currentTime}
                             duration={duration}
                             buffered={buffered}
@@ -942,21 +943,33 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                             onSeek={seekWithPlugins}
                             onSeekStart={() => setSeeking(true)}
                             onSeekEnd={() => setSeeking(false)}
-                            peaks={currentTrack.peaks}
-                            peaksDuration={currentTrack.waveformDuration}
-                            getDecodedData={engine.getDecodedData}
-                            // Only the streaming backend needs the second
-                            // fetch+decode; webaudio supplies decoded PCM.
-                            url={
-                                engine.getBackendInfo().active === "html5"
-                                    ? src
-                                    : undefined
+                            plugin={
+                                scrubberPlugin ??
+                                (showWaveform
+                                    ? {
+                                          id: "waveform",
+                                          config: {
+                                              ...waveformConfig,
+                                              height:
+                                                  waveformConfig?.height ??
+                                                  waveformHeight,
+                                              unplayedColor:
+                                                  waveformConfig?.unplayedColor ??
+                                                  trackColor,
+                                              playedColor:
+                                                  waveformConfig?.playedColor ??
+                                                  progressColor,
+                                              cursorColor:
+                                                  waveformConfig?.cursorColor ??
+                                                  accentColor,
+                                          },
+                                      }
+                                    : false)
                             }
+                            track={currentTrack}
+                            getDecodedData={engine.getDecodedData}
+                            getBackendInfo={engine.getBackendInfo}
                             sourceKey={sourceKey}
-                            height={waveformHeight}
-                            waveColor={trackColor}
-                            progressColor={progressColor}
-                            cursorColor={accentColor}
                         />
                     </ScrubberCanvasHost>
                     <div className="ap-times" aria-hidden="true">

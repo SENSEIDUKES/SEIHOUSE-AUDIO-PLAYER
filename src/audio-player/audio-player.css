@@ -282,7 +282,7 @@
     bottom: 0;
     height: 2px;
     border-radius: 1px;
-    background-color: var(--ap-progress);
+    background-color: var(--ap-waveform-buffered, var(--ap-progress));
     opacity: 0.3;
     pointer-events: none;
     transition: width 0.2s linear;

@@ -22,7 +22,7 @@ import {
     useActivePluginInstances,
     PluginManagerPanel,
 } from "../audio-player"
-import type { AudioBackendKind } from "../audio-player"
+import type { AudioBackendKind, ScrubberPluginSelection } from "../audio-player"
 import { SAMPLE, BROKEN, OG_BG, playlist, proPlaylist, stressPlaylist, SEA_THEME, SEA_ARTS } from "./data"
 
 /* ----------------------------- Reusable lab chrome ----------------------------- */
@@ -578,6 +578,32 @@ function PluginRegistrySection() {
 /* ----------------------------- Waveform demo ----------------------------- */
 function WaveformSection() {
     const [backend, setBackend] = useState<AudioBackendKind>("html5")
+    const [preset, setPreset] = useState<"classic" | "blocks" | "gradient">("classic")
+    const scrubberPlugin = useMemo<ScrubberPluginSelection>(
+        () => ({
+            id: "waveform",
+            config:
+                preset === "blocks"
+                    ? {
+                          preset: "blocks",
+                          resolution: 10,
+                          playedColor: "#F59E0B",
+                          unplayedColor: "rgba(245,158,11,0.28)",
+                      }
+                    : preset === "gradient"
+                      ? {
+                            preset: "gradient",
+                            colorMode: "palette",
+                            palette: ["#22D3A6", "#7C5CFF", "#F59E0B"],
+                        }
+                      : {
+                            preset: "classic",
+                            playedColor: "#F59E0B",
+                            unplayedColor: "rgba(245,158,11,0.3)",
+                        },
+        }),
+        [preset]
+    )
 
     return (
         <section className="lab-section">
@@ -586,21 +612,16 @@ function WaveformSection() {
                 <small>wavesurfer.js scrubber</small>
             </h2>
             <p className="lab-section__desc">
-                <code>showWaveform</code> swaps the progress bar for a
-                wavesurfer.js waveform that doubles as the scrubber. The engine
-                stays the only playback owner — wavesurfer just renders peaks
-                and forwards clicks/drags. Under <code>webaudio</code> the
-                peaks come from the already-decoded buffer (after the first
-                play); under <code>html5</code> the file is fetched and decoded
-                separately for analysis (requires CORS). While peaks load — or
-                for the broken track — the plain progress bar renders in the
-                same slot.
+                Waveform is the first official ScrubberCanvas visual plugin.
+                Active plugin: <strong>Waveform</strong>. Fallback:{" "}
+                <strong>Progress</strong>. The engine stays the only playback
+                owner — the plugin just renders peaks and forwards scrub seeks.
             </p>
             <div className="lab-section__grid">
                 <div className="lab-states">
                     <div className="lab-state">
                         <h3 className="lab-state__title">
-                            Backend: {backend}
+                            Backend: {backend} · preset: {preset}
                         </h3>
                         <div className="framer-panel__preset-row">
                             {(["html5", "webaudio"] as const).map((kind) => (
@@ -615,11 +636,25 @@ function WaveformSection() {
                                 </button>
                             ))}
                         </div>
+                        <div className="framer-panel__preset-row">
+                            {(["classic", "blocks", "gradient"] as const).map((kind) => (
+                                <button
+                                    key={kind}
+                                    type="button"
+                                    className={`framer-panel__preset${preset === kind ? " framer-panel__preset--warn" : ""}`}
+                                    onClick={() => setPreset(kind)}
+                                    aria-pressed={preset === kind}
+                                >
+                                    {kind}
+                                </button>
+                            ))}
+                        </div>
                         <div className="lab-state__player">
                             <AudioPlayer
-                                key={backend}
+                                key={`${backend}-${preset}`}
                                 audioBackend={backend}
                                 showWaveform
+                                scrubberPlugin={scrubberPlugin}
                                 tracks={playlist}
                                 showTracklist
                                 repeatMode="all"
@@ -630,13 +665,28 @@ function WaveformSection() {
                             />
                         </div>
                         <div className="lab-state__note">
-                            expect: waveform appears once peaks are ready ·
-                            click + drag scrub seek the engine (audio seeks on
-                            release) · keyboard ←/→ on the waveform works ·
-                            broken track stays a plain bar · webaudio decodes
-                            on first load, so its waveform can appear after the
-                            first play (immediately in dev, where StrictMode
-                            pre-loads)
+                            expect: dense classic waveform · blocks preset
+                            renders about 10 larger bars · gradient uses a
+                            palette-driven waveform · broken/unavailable peaks
+                            stay a plain progress fallback
+                        </div>
+                    </div>
+                    <div className="lab-state">
+                        <h3 className="lab-state__title">
+                            FullCard via ScrubberPluginHost
+                        </h3>
+                        <div className="lab-state__player">
+                            <AudioSessionProvider initialQueue={playlist}>
+                                <FullCardPlayer
+                                    {...SEA_THEME}
+                                    scrubberPlugin={scrubberPlugin}
+                                />
+                            </AudioSessionProvider>
+                        </div>
+                        <div className="lab-state__note">
+                            active scrubber plugin: Waveform · fallback:
+                            Progress · no second audio element is mounted by
+                            the visual plugin
                         </div>
                     </div>
                 </div>

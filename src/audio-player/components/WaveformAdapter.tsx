@@ -32,9 +32,18 @@ export interface WaveformAdapterProps {
     // --- Presentation overrides ---
     /** Explicit canvas height; defaults to `getScrubberHeight(density)`. */
     height?: number
-    waveColor?: string
-    progressColor?: string
+    barCount?: number
+    resolution?: number
+    barWidth?: number
+    barGap?: number
+    barRadius?: number
+    amplitudeScale?: number
+    mirrored?: boolean
+    waveColor?: string | string[]
+    progressColor?: string | string[]
+    bufferedColor?: string
     cursorColor?: string
+    showCursor?: boolean
     /**
      * Force the waveform on/off regardless of the face capability. Used by the
      * standalone player (`showWaveform`) and the seaCard overlay. When omitted,
@@ -71,9 +80,18 @@ export function WaveformAdapter({
     url,
     sourceKey,
     height,
+    barCount,
+    resolution,
+    barWidth,
+    barGap,
+    barRadius,
+    amplitudeScale,
+    mirrored,
     waveColor,
     progressColor,
+    bufferedColor,
     cursorColor,
+    showCursor,
     waveform,
 }: WaveformAdapterProps) {
     const useWaveform = waveform ?? faceSupportsWaveform(face)
@@ -109,9 +127,18 @@ export function WaveformAdapter({
             url={url}
             sourceKey={sourceKey}
             height={height ?? getScrubberHeight(density)}
+            barCount={barCount}
+            resolution={resolution}
+            barWidth={barWidth}
+            barGap={barGap}
+            barRadius={barRadius}
+            amplitudeScale={amplitudeScale}
+            mirrored={mirrored}
             waveColor={waveColor}
             progressColor={progressColor}
+            bufferedColor={bufferedColor}
             cursorColor={cursorColor}
+            showCursor={showCursor}
         />
     )
 }

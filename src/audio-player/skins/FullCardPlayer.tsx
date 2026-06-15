@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react"
 import type { CSSProperties } from "react"
 import type { AudioPlayerTheme } from "../types"
+import type { ScrubberPluginSelection } from "../scrubber/ScrubberPluginHost"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { QueueDrawer } from "../components/QueueDrawer"
-import { WaveformAdapter } from "../components/WaveformAdapter"
+import { ScrubberPluginHost } from "../scrubber/ScrubberPluginHost"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
 import { useShareTrack } from "../components/useShareTrack"
@@ -40,6 +41,8 @@ export interface FullCardPlayerProps extends AudioPlayerTheme {
      * boolean to override the per-device default.
      */
     showVolume?: boolean
+    /** Primary scrubber visual plugin. Defaults to the official Waveform plugin. */
+    scrubberPlugin?: ScrubberPluginSelection | string | false | null
     className?: string
     style?: CSSProperties
 }
@@ -61,6 +64,7 @@ export interface FullCardPlayerProps extends AudioPlayerTheme {
  */
 export function FullCardPlayer({
     showVolume = defaultShowVolume(),
+    scrubberPlugin = "waveform",
     className,
     style,
     ...theme
@@ -289,10 +293,7 @@ export function FullCardPlayer({
                     onSeek={s.seek}
                 >
                     <div className="ap-progress-group" role="group" aria-label="Playback progress">
-                        {/* WaveformAdapter (Phase 4): renders the interactive
-                            waveform when the track has peaks, else the progress
-                            bar. fullCard opts into waveform via its capability. */}
-                        <WaveformAdapter
+                        <ScrubberPluginHost
                             face="fullCard"
                             density={getScrubberDensity("fullCard")}
                             currentTime={currentTime}
@@ -303,19 +304,11 @@ export function FullCardPlayer({
                             onSeek={s.seek}
                             onSeekStart={() => s.setSeeking(true)}
                             onSeekEnd={() => s.setSeeking(false)}
-                            peaks={currentTrack?.peaks}
-                            peaksDuration={currentTrack?.waveformDuration}
+                            plugin={scrubberPlugin}
+                            track={currentTrack}
                             getDecodedData={s.getDecodedData}
-                            // Fetch+decode fallback (html5 only) so tracks without
-                            // precomputed peaks can still draw a waveform; webaudio
-                            // supplies decoded PCM. wavesurfer stays visual-only —
-                            // the engine remains the sole playback owner.
-                            url={
-                                s.getBackendInfo().active === "html5"
-                                    ? currentTrack?.audioFile
-                                    : undefined
-                            }
-                            sourceKey={currentTrack ? trackKey(currentTrack) : undefined}
+                            getBackendInfo={s.getBackendInfo}
+                            sourceKey={s.sourceKey}
                         />
                         <div className="ap-times" aria-hidden="true">
                             <span>{formatTime(currentTime)}</span>

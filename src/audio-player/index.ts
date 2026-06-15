@@ -65,6 +65,11 @@ export { ProgressBar } from "./components/ProgressBar"
 export { VolumeControl } from "./components/VolumeControl"
 export { WaveformProgress } from "./components/WaveformProgress"
 export { WaveformAdapter } from "./components/WaveformAdapter"
+export {
+    ScrubberPluginHost,
+    WaveformScrubberPlugin,
+    resolveWaveformScrubberConfig,
+} from "./scrubber/ScrubberPluginHost"
 export { extractPeaks, computePeaksFromUrl } from "./core/waveform/peaks"
 export { QueueDrawer } from "./components/QueueDrawer"
 export type { QueueDrawerProps } from "./components/QueueDrawer"
@@ -238,6 +243,12 @@ export type {
 } from "./core/audio/AudioBackend"
 export type { WaveformProgressProps } from "./components/WaveformProgress"
 export type { WaveformAdapterProps } from "./components/WaveformAdapter"
+export type {
+    ScrubberPluginRenderProps,
+    ScrubberPluginSelection,
+    ScrubberVisualPlugin,
+    WaveformScrubberConfig,
+} from "./scrubber/ScrubberPluginHost"
 export type { ComputedPeaks } from "./core/waveform/peaks"
 export type { AutomixPluginConfig } from "./plugins/AutomixPlugin"
 export type { AutoThemePluginConfig } from "./plugins/AutoThemePlugin"

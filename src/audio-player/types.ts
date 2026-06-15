@@ -1,6 +1,10 @@
 import type { CSSProperties, ReactNode } from "react"
 import type { AudioPlayerPlugin } from "./core/plugins/PluginInterface"
 import type { AudioBackendInfo, AudioBackendKind } from "./core/audio/AudioBackend"
+import type {
+    ScrubberPluginSelection,
+    WaveformScrubberConfig,
+} from "./scrubber/types"
 
 /**
  * Vault identity category. Drives a row's visual identity (accent color + label)
@@ -146,6 +150,10 @@ export interface AudioPlayerProps extends AudioPlayerTheme {
     showWaveform?: boolean
     /** Waveform canvas height in px. Default 48. */
     waveformHeight?: number
+    /** Future-facing waveform visual configuration. */
+    waveformConfig?: WaveformScrubberConfig
+    /** Explicit scrubber visual plugin. `false` forces plain progress. */
+    scrubberPlugin?: ScrubberPluginSelection | string | false | null
 
     /** Typography (inline style objects). */
     titleFont?: CSSProperties
@@ -298,6 +306,8 @@ export interface SessionEngine extends AudioPlayerEngine {
     currentIndex: number
     /** The active track, or null when the queue is empty. */
     currentTrack: Track | null
+    /** Logical active source identity; changes force visual scrubber resets. */
+    sourceKey: string
     /** Whether playback order is shuffled. */
     shuffle: boolean
     /** Repeat behavior at the end of a track. */
