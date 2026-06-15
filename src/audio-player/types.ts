@@ -22,6 +22,26 @@ export interface Track {
     peaks?: number[][]
     /** Duration in seconds matching `peaks`. Required for peaks-only rendering. */
     waveformDuration?: number
+
+    /* ---- Optional extended metadata (display-only, fully backward-compatible).
+       None of these affect playback, queue, or plugin behavior; they refine how
+       a face presents the track. Faces degrade gracefully when they're absent. */
+
+    /** Album or release name shown on the secondary line where space permits. */
+    albumTitle?: string
+    /** Single/EP/Album release title, when it differs from `albumTitle`.
+     *  Surfaced only in expanded contexts (e.g. the FullCard hero). */
+    releaseTitle?: string
+    /** Featured artists, kept separate from the primary `artist`. Rendered as
+     *  "feat. A, B & C" after the artist. */
+    featuredArtists?: string[]
+    /** Version qualifier, e.g. "Radio Edit", "Extended Mix", "Remaster". */
+    versionLabel?: string
+    /** Explicit-content flag; renders a small "E" badge next to the title. */
+    explicit?: boolean
+    /** Generic secondary-line fallback used when there's no album or featured
+     *  artist to show. */
+    subtitle?: string
 }
 
 /** Theme colors. Applied to the player root as CSS custom properties. */

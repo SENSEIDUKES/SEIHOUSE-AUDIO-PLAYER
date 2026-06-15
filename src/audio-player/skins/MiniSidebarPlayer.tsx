@@ -9,6 +9,11 @@ import { WaveformAdapter } from "../components/WaveformAdapter"
 import { PlayerSurfaceButtons } from "../surfaces/PlayerSurfaceButtons"
 import { QueueSurface } from "../surfaces/QueueSurface"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
+import { ExplicitBadge } from "../components/TrackMetadata"
+import {
+    formatSecondaryLine,
+    formatVersionedTitle,
+} from "../utils/formatMetadata"
 import "./skins.css"
 
 export interface MiniSidebarPlayerProps extends AudioPlayerTheme {
@@ -41,6 +46,10 @@ export function MiniSidebarPlayer({
     const surface = usePlayerSurface("miniSidebar")
     const { currentTrack, isPlaying, isBuffering, hasAudio, currentTime, duration } = s
     const empty = !currentTrack
+    const msTitle = currentTrack
+        ? formatVersionedTitle(currentTrack.title, currentTrack.versionLabel)
+        : "Nothing playing"
+    const msSecondary = currentTrack ? formatSecondaryLine(currentTrack) : "—"
 
     return (
         <div
@@ -54,11 +63,12 @@ export function MiniSidebarPlayer({
                     aria-hidden="true"
                 />
                 <div className="ap-ms__meta">
-                    <span className="ap-ms__title" title={currentTrack?.title}>
-                        {currentTrack?.title ?? "Nothing playing"}
+                    <span className="ap-ms__title" title={msTitle}>
+                        {msTitle}
+                        {currentTrack?.explicit && <ExplicitBadge />}
                     </span>
-                    <span className="ap-ms__artist" title={currentTrack?.artist}>
-                        {currentTrack?.artist ?? "—"}
+                    <span className="ap-ms__artist" title={msSecondary}>
+                        {msSecondary}
                     </span>
                 </div>
                 <button

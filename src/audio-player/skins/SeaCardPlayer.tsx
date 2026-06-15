@@ -8,6 +8,11 @@ import { usePlayerSurface } from "../surfaces/usePlayerSurface"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { SEICanvasHost } from "../surfaces/SEICanvasHost"
 import { PlayerHero } from "../surfaces/PlayerHero"
+import { ExplicitBadge } from "../components/TrackMetadata"
+import {
+    formatSecondaryLine,
+    formatVersionedTitle,
+} from "../utils/formatMetadata"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
 import { buildThemeVars } from "./themeVars"
 import { PauseIcon, PlayIcon, SpinnerIcon, WaveIcon } from "./icons"
@@ -110,8 +115,19 @@ export function SeaCardPlayer({
                 )}
             </div>
             <div className="ap-sea__body">
-                <div className="ap-sea__title" title={track.title}>{track.title}</div>
-                <div className="ap-sea__artist" title={track.artist}>{track.artist}</div>
+                <div
+                    className="ap-sea__title"
+                    title={formatVersionedTitle(track.title, track.versionLabel)}
+                >
+                    {formatVersionedTitle(track.title, track.versionLabel)}
+                    {track.explicit && <ExplicitBadge />}
+                </div>
+                <div
+                    className="ap-sea__artist"
+                    title={formatSecondaryLine(track)}
+                >
+                    {formatSecondaryLine(track)}
+                </div>
                 {/* Hide the inline scrubber while the waveform overlay is open so
                     the card never shows two scrubbers at once. */}
                 {isActive && !surface.isCanvasOpen && (
@@ -167,6 +183,13 @@ export function SeaCardPlayer({
                             collapsed={false}
                             title={track.title ?? ""}
                             artist={track.artist ?? ""}
+                            album={track.albumTitle}
+                            featuredArtists={track.featuredArtists}
+                            versionLabel={track.versionLabel}
+                            explicit={track.explicit}
+                            releaseTitle={track.releaseTitle}
+                            subtitle={track.subtitle}
+                            marquee
                         />
                         <WaveformAdapter
                             face="seaCard"

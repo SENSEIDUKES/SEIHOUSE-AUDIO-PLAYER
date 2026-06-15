@@ -246,6 +246,13 @@ export function FullCardPlayer({
                     collapsed={surface.isHeroCollapsed}
                     title={currentTrack?.title ?? "Nothing playing"}
                     artist={currentTrack?.artist ?? "—"}
+                    album={currentTrack?.albumTitle}
+                    featuredArtists={currentTrack?.featuredArtists}
+                    versionLabel={currentTrack?.versionLabel}
+                    explicit={currentTrack?.explicit}
+                    releaseTitle={currentTrack?.releaseTitle}
+                    subtitle={currentTrack?.subtitle}
+                    marquee
                 />
 
                 {/* Main visual surface region. Hidden by default; the left surface

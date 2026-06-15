@@ -1,0 +1,57 @@
+/* Measured marquee. The container clips; the inner span either truncates with
+   an ellipsis (static) or scrolls its overflow (when data-scroll="true"). The
+   component only flips data-scroll on when the text actually overflows and
+   motion is allowed, so these rules never animate text that fits. */
+
+.ap-marquee {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.ap-marquee__inner {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+/* Scrolling state: let the text exceed the box and travel its overflow, easing
+   to a pause at each end (alternate), GPU-composited via translate3d. */
+.ap-marquee[data-scroll="true"] .ap-marquee__inner {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    will-change: transform;
+    animation: ap-marquee-shift var(--ap-marquee-duration, 10s) ease-in-out
+        infinite alternate;
+}
+
+@keyframes ap-marquee-shift {
+    0%,
+    12% {
+        transform: translate3d(0, 0, 0);
+    }
+    88%,
+    100% {
+        transform: translate3d(calc(-1 * var(--ap-marquee-distance, 0px)), 0, 0);
+    }
+}
+
+/* Let people read it: pause while hovered or focused within. */
+.ap-marquee:hover .ap-marquee__inner,
+.ap-marquee:focus-within .ap-marquee__inner {
+    animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ap-marquee__inner {
+        animation: none !important;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}

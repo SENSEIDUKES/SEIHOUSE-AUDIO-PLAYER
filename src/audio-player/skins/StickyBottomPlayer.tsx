@@ -7,7 +7,12 @@ import { WaveformAdapter } from "../components/WaveformAdapter"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
 import { useShareTrack } from "../components/useShareTrack"
+import { ExplicitBadge } from "../components/TrackMetadata"
 import { formatTime } from "../utils/formatTime"
+import {
+    formatSecondaryLine,
+    formatVersionedTitle,
+} from "../utils/formatMetadata"
 import { defaultShowVolume } from "../utils/device"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
@@ -128,11 +133,24 @@ export function StickyBottomPlayer({
 
             <div className="ap-sb__inner">
                 <div className="ap-sb__meta">
-                    <span className="ap-sb__title" title={currentTrack.title}>
-                        {currentTrack.title}
+                    <span
+                        className="ap-sb__title"
+                        title={formatVersionedTitle(
+                            currentTrack.title,
+                            currentTrack.versionLabel
+                        )}
+                    >
+                        {formatVersionedTitle(
+                            currentTrack.title,
+                            currentTrack.versionLabel
+                        )}
+                        {currentTrack.explicit && <ExplicitBadge />}
                     </span>
-                    <span className="ap-sb__artist" title={currentTrack.artist}>
-                        {currentTrack.artist}
+                    <span
+                        className="ap-sb__artist"
+                        title={formatSecondaryLine(currentTrack)}
+                    >
+                        {formatSecondaryLine(currentTrack)}
                     </span>
                 </div>
 

@@ -2,7 +2,12 @@ import type { CSSProperties } from "react"
 import type { AudioPlayerTheme, Track } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { WaveformAdapter } from "../components/WaveformAdapter"
+import { ExplicitBadge } from "../components/TrackMetadata"
 import { formatTime } from "../utils/formatTime"
+import {
+    formatSecondaryLine,
+    formatVersionedTitle,
+} from "../utils/formatMetadata"
 import { trackKey } from "../utils/trackKey"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
@@ -79,8 +84,12 @@ export function VaultRowPlayer({
                 {isBufferingThis ? <SpinnerIcon /> : isPlayingThis ? <PauseIcon /> : <PlayIcon />}
             </button>
             <div className="ap-vr__meta">
-                <span className="ap-vr__title" title={track.title}>
-                    {track.title}
+                <span
+                    className="ap-vr__title"
+                    title={formatVersionedTitle(track.title, track.versionLabel)}
+                >
+                    {formatVersionedTitle(track.title, track.versionLabel)}
+                    {track.explicit && <ExplicitBadge />}
                 </span>
                 {isActive ? (
                     <span className="ap-vr__progress">
@@ -112,8 +121,11 @@ export function VaultRowPlayer({
                         </ScrubberCanvasHost>
                     </span>
                 ) : (
-                    <span className="ap-vr__artist" title={track.artist}>
-                        {track.artist}
+                    <span
+                        className="ap-vr__artist"
+                        title={formatSecondaryLine(track)}
+                    >
+                        {formatSecondaryLine(track)}
                     </span>
                 )}
             </div>

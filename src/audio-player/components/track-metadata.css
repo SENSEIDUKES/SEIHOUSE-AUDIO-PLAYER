@@ -1,0 +1,93 @@
+/* Shared metadata typography. Faces that render <TrackMetadata> inherit a
+   consistent hierarchy; the explicit badge / album / featured classes are also
+   reused inline by the compact faces that keep their own title/artist spans. */
+
+.ap-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ap-meta__primary,
+.ap-meta__secondary,
+.ap-meta__tertiary {
+    min-width: 0;
+}
+
+.ap-meta__title {
+    display: block;
+    font-weight: var(--ap-title-weight, 600);
+    letter-spacing: var(--ap-title-tracking, -0.01em);
+    line-height: var(--ap-title-lh, 1.2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ap-meta__secondary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.66;
+    font-weight: var(--ap-artist-weight, 500);
+    line-height: var(--ap-artist-lh, 1.3);
+}
+
+.ap-meta__featured {
+    opacity: 0.85;
+}
+.ap-meta__album {
+    opacity: 0.85;
+}
+
+.ap-meta__tertiary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.5;
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+/* Density presets. Faces can still override via their own scoped rules. */
+.ap-meta--hero .ap-meta__title {
+    font-size: var(--ap-title-size-lg, 24px);
+    letter-spacing: var(--ap-title-tracking, -0.02em);
+}
+.ap-meta--hero .ap-meta__secondary {
+    font-size: var(--ap-artist-size-lg, 15px);
+}
+.ap-meta--compact .ap-meta__title,
+.ap-meta--bar .ap-meta__title {
+    font-size: var(--ap-title-size-md, 15px);
+}
+.ap-meta--compact .ap-meta__secondary,
+.ap-meta--bar .ap-meta__secondary {
+    font-size: var(--ap-artist-size-md, 13px);
+}
+.ap-meta--row .ap-meta__title {
+    font-size: var(--ap-title-size-sm, 14px);
+}
+.ap-meta--row .ap-meta__secondary {
+    font-size: var(--ap-artist-size-sm, 12px);
+}
+
+/* Explicit-content badge. Shared by TrackMetadata and the in-place faces. */
+.ap-explicit-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    margin-left: 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    background-color: color-mix(in srgb, var(--ap-text, #fff) 20%, transparent);
+    color: var(--ap-text, #fff);
+}

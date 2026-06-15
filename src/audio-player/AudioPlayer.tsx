@@ -29,7 +29,12 @@ import { VolumeControl } from "./components/VolumeControl"
 import { QueueDrawer } from "./components/QueueDrawer"
 import { SAPController } from "./components/SAPController"
 import { useShareTrack } from "./components/useShareTrack"
+import { ExplicitBadge } from "./components/TrackMetadata"
 import { formatTime } from "./utils/formatTime"
+import {
+    formatSecondaryLine,
+    formatVersionedTitle,
+} from "./utils/formatMetadata"
 import { defaultShowVolume } from "./utils/device"
 import { resolveTrackList } from "./utils/trackList"
 import { trackKey } from "./utils/trackKey"
@@ -892,16 +897,23 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                     <div
                         className="ap-track-info__title"
                         style={titleFont}
-                        title={currentTrack.title}
+                        title={formatVersionedTitle(
+                            currentTrack.title,
+                            currentTrack.versionLabel
+                        )}
                     >
-                        {currentTrack.title}
+                        {formatVersionedTitle(
+                            currentTrack.title,
+                            currentTrack.versionLabel
+                        )}
+                        {currentTrack.explicit && <ExplicitBadge />}
                     </div>
                     <div
                         className="ap-track-info__artist"
                         style={artistFont}
-                        title={currentTrack.artist}
+                        title={formatSecondaryLine(currentTrack)}
                     >
-                        {currentTrack.artist}
+                        {formatSecondaryLine(currentTrack)}
                     </div>
                 </div>
 

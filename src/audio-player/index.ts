@@ -78,6 +78,29 @@ export type {
 } from "./components/SAPController"
 export { useShareTrack } from "./components/useShareTrack"
 
+// Metadata + typography: the reusable TrackMetadata block, the measured marquee,
+// the reduced-motion hook, and the pure formatting helpers behind them.
+export { TrackMetadata, ExplicitBadge } from "./components/TrackMetadata"
+export type {
+    TrackMetadataProps,
+    TrackMetadataVariant,
+} from "./components/TrackMetadata"
+export { TextMarquee } from "./components/TextMarquee"
+export type { TextMarqueeProps } from "./components/TextMarquee"
+export { useReducedMotion } from "./components/useReducedMotion"
+export {
+    getDisplayTitle,
+    getDisplayArtist,
+    formatVersionedTitle,
+    formatFeatured,
+    formatSecondaryLine,
+    shouldEnableMarquee,
+} from "./utils/formatMetadata"
+export type {
+    TrackMetadataFields,
+    ShouldEnableMarqueeArgs,
+} from "./utils/formatMetadata"
+
 // Action Workspace router: the SAP Controller shell, its route model, and the
 // placeholder workspace surfaces the radial menu opens.
 export {
