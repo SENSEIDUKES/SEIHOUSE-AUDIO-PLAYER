@@ -123,6 +123,9 @@ export function SEICanvasActionMenu({
     const [entered, setEntered] = useState(false)
     const [path, setPath] = useState<string[]>([])
     const [themeStyle, setThemeStyle] = useState<CSSProperties>({})
+    // The arc shrinks on narrow viewports so every node stays within thumb reach
+    // (the default 128px radius overshoots on phones).
+    const [arcRadius, setArcRadius] = useState(ARC_RADIUS)
 
     const close = useCallback(() => {
         setOpen(false)
@@ -153,6 +156,22 @@ export function SEICanvasActionMenu({
         return () => cancelAnimationFrame(raf)
     }, [open])
 
+    // Pick an arc radius for the current viewport, and follow resizes/rotations.
+    // Only while the menu is open — the radius is irrelevant when nothing renders,
+    // so there's no reason to keep a resize listener attached the rest of the time.
+    useEffect(() => {
+        if (!open || typeof window === "undefined") return
+        const updateRadius = () => {
+            const vw = window.innerWidth
+            if (vw < 400) setArcRadius(96)
+            else if (vw < 600) setArcRadius(112)
+            else setArcRadius(ARC_RADIUS)
+        }
+        updateRadius()
+        window.addEventListener("resize", updateRadius)
+        return () => window.removeEventListener("resize", updateRadius)
+    }, [open])
+
     // Escape closes; body scroll locks; focus moves to the center button on open
     // and restores to the trigger on close (same pattern as SAPController).
     useEffect(() => {
@@ -174,7 +193,7 @@ export function SEICanvasActionMenu({
     }, [open, close])
 
     const { level, trail } = resolveLevel(items, path)
-    const offsets = arcOffsets(level.length)
+    const offsets = arcOffsets(level.length, arcRadius)
 
     const handleNode = useCallback(
         (node: MenuNode) => {
@@ -235,9 +254,16 @@ export function SEICanvasActionMenu({
                 typeof document !== "undefined" &&
                 createPortal(
                     <div className="sac" style={themeStyle}>
+                        {/* Dismiss on a deliberate press of empty space. Using
+                            pointerdown (not click) means a tap that lands on a
+                            node hits the node — never this backdrop — so opening
+                            a submenu can't be swallowed by a stray close, and a
+                            post-navigation ghost click has nothing to trigger. */}
                         <div
                             className="sac__backdrop"
-                            onClick={close}
+                            onPointerDown={(e) => {
+                                if (e.button === 0) close()
+                            }}
                             aria-hidden="true"
                             data-entered={entered}
                         />
@@ -246,7 +272,15 @@ export function SEICanvasActionMenu({
                             role="menu"
                             aria-label={ariaLabel}
                         >
-                            <div className="sac__arc" data-open={entered}>
+                            <div
+                                className="sac__arc"
+                                data-open={entered}
+                                style={
+                                    {
+                                        "--arc-radius": `${arcRadius}px`,
+                                    } as CSSProperties
+                                }
+                            >
                                 {inSubmenu && (
                                     <div className="sac__crumb" aria-hidden="true">
                                         {trail.join(" › ")}
@@ -263,12 +297,12 @@ export function SEICanvasActionMenu({
                                             key={node.id}
                                             type="button"
                                             role="menuitem"
-                                            className={`sac__node ap-tap sac__node--${state}`}
+                                            className={`sac__node sac__node--${state}`}
                                             style={
                                                 {
                                                     "--sac-x": `${offset.x}px`,
                                                     "--sac-y": `${offset.y}px`,
-                                                    transitionDelay: `${i * 25}ms`,
+                                                    transitionDelay: `${i * 8}ms`,
                                                 } as CSSProperties
                                             }
                                             onClick={() => handleNode(node)}
