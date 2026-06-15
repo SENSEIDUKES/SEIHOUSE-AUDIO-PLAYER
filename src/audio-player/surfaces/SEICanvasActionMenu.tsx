@@ -254,9 +254,16 @@ export function SEICanvasActionMenu({
                 typeof document !== "undefined" &&
                 createPortal(
                     <div className="sac" style={themeStyle}>
+                        {/* Dismiss on a deliberate press of empty space. Using
+                            pointerdown (not click) means a tap that lands on a
+                            node hits the node — never this backdrop — so opening
+                            a submenu can't be swallowed by a stray close, and a
+                            post-navigation ghost click has nothing to trigger. */}
                         <div
                             className="sac__backdrop"
-                            onClick={close}
+                            onPointerDown={(e) => {
+                                if (e.button === 0) close()
+                            }}
                             aria-hidden="true"
                             data-entered={entered}
                         />
@@ -290,7 +297,7 @@ export function SEICanvasActionMenu({
                                             key={node.id}
                                             type="button"
                                             role="menuitem"
-                                            className={`sac__node ap-tap sac__node--${state}`}
+                                            className={`sac__node sac__node--${state}`}
                                             style={
                                                 {
                                                     "--sac-x": `${offset.x}px`,
