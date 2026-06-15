@@ -157,8 +157,10 @@ export function SEICanvasActionMenu({
     }, [open])
 
     // Pick an arc radius for the current viewport, and follow resizes/rotations.
+    // Only while the menu is open — the radius is irrelevant when nothing renders,
+    // so there's no reason to keep a resize listener attached the rest of the time.
     useEffect(() => {
-        if (typeof window === "undefined") return
+        if (!open || typeof window === "undefined") return
         const updateRadius = () => {
             const vw = window.innerWidth
             if (vw < 400) setArcRadius(96)
@@ -168,7 +170,7 @@ export function SEICanvasActionMenu({
         updateRadius()
         window.addEventListener("resize", updateRadius)
         return () => window.removeEventListener("resize", updateRadius)
-    }, [])
+    }, [open])
 
     // Escape closes; body scroll locks; focus moves to the center button on open
     // and restores to the trigger on close (same pattern as SAPController).
