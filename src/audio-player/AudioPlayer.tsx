@@ -25,6 +25,10 @@ import { usePluginManager } from "./core/plugins/usePluginManager"
 import { WaveformAdapter } from "./components/WaveformAdapter"
 import { ScrubberCanvasHost } from "./surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "./surfaces/faceCapabilities"
+import { usePlayerSurface } from "./surfaces/usePlayerSurface"
+import { PlayerSurfaceButtons } from "./surfaces/PlayerSurfaceButtons"
+import { SEICanvasHost } from "./surfaces/SEICanvasHost"
+import { QueueSurface } from "./surfaces/QueueSurface"
 import { VolumeControl } from "./components/VolumeControl"
 import { QueueDrawer } from "./components/QueueDrawer"
 import { SAPController } from "./components/SAPController"
@@ -39,6 +43,7 @@ import { defaultShowVolume } from "./utils/device"
 import { resolveTrackList } from "./utils/trackList"
 import { trackKey } from "./utils/trackKey"
 import { getTrackSources, trackSourcesSignature } from "./utils/sources"
+import type { WorkspaceRoute } from "./components/workspace/workspaceRoutes"
 import "./audio-player.css"
 
 const DEFAULT_AUDIO =
@@ -136,19 +141,26 @@ class AudioPlayerErrorBoundary extends Component<
 /**
  * The standalone, self-contained player (`PLAYER_FACE_CAPABILITIES.portable`).
  *
- * Unlike the session-based skins, it owns its own transport, ProgressBar /
- * waveform, and SAPController three-dot menu directly rather than going through
- * the shared surface infrastructure. Accordingly its capability declares
- * `supportsContextualActions: false` (no radial `PlayerSurfaceButtons` menu);
- * its canvas/scrubber host capabilities are forward-looking for a later phase.
- * Deep actions (queue, info, share, playback modes) live in the SAPController,
- * and mobile volume follows the Phase 1 `defaultShowVolume()` default.
+ * Full-featured portable player with complete surface infrastructure support:
+ * - `SEICanvasHost` for plugin visual areas (canvas toggle + Up Next queue)
+ * - `ScrubberCanvasHost` + `WaveformAdapter` for unified scrubber waveform
+ * - `PlayerSurfaceButtons` providing:
+ *   - Left: SEI Canvas toggle button
+ *   - Right: `SEICanvasActionMenu` (radial command wheel)
+ * - `SAPController` for deep actions (shuffle, repeat, automix, autoplay,
+ *   queue, info, share, plugins) — shared with the arc menu via workspace routes
  *
- * Phase 4 wires its scrubber through the shared `ScrubberCanvasHost` +
- * `WaveformAdapter`, the same path the session faces use. The standalone player
- * defaults to the basic progress bar; the waveform turns on when the Waveform
- * plugin is active (gated by its Show Waveform toggle) or when the explicit
- * `showWaveform` prop is set — see `effectiveWaveform` below.
+ * The arc menu and "..." button share a single SAPController instance, with
+ * workspace routes determining which focused panel displays (e.g. Lyrics,
+ * Automix, Plugin Settings). This matches the FullCardPlayer architecture.
+ *
+ * Waveform display is controlled by:
+ * 1. Explicit `showWaveform` prop (highest priority)
+ * 2. WaveformPlugin presence + toggle state
+ * 3. Falls back to basic progress bar
+ *
+ * Mobile volume follows `defaultShowVolume()` default (visible on desktop,
+ * hidden on touch).
  */
 export function AudioPlayer(props: AudioPlayerProps) {
     return (
@@ -209,6 +221,13 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     // Editable local queue (copy of tracks prop, updated by reorder/remove).
     const [localQueue, setLocalQueue] = useState<Track[]>(tracks)
     const [queueOpen, setQueueOpen] = useState(false)
+
+    // Surface state management for canvas/queue surfaces (mirrors FullCardPlayer).
+    const surface = usePlayerSurface("portable")
+
+    // Controller route state (shared between "..." button and arc menu).
+    const [controllerRoute, setControllerRoute] = useState<WorkspaceRoute>("options")
+
     const rootRef = useRef<HTMLDivElement>(null)
     const previousTracksSignatureRef = useRef(tracksSignature)
 
@@ -660,6 +679,24 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         share()
     }, [nativeShare, share])
 
+    // Shared SAP Controller: a single instance serves both the "..." button
+    // (default options route) and arc menu workspace selections (lyrics,
+    // automix, plugin settings, etc.). Mirrors FullCardPlayer architecture.
+    const handleCloseController = useCallback(() => {
+        setControllerOpen(false)
+        setControllerRoute("options")
+    }, [])
+
+    const handleOpenFocusedController = useCallback((route: WorkspaceRoute) => {
+        setControllerRoute(route)
+        setControllerOpen(true)
+    }, [])
+
+    const handleOpenOptions = useCallback(() => {
+        setControllerRoute("options")
+        setControllerOpen(true)
+    }, [])
+
     // Keyboard shortcuts scoped to the player root (not window) so they never
     // fight focused controls or other parts of the host app. Space/Enter on an
     // actual button is left to the button, preventing double-triggering.
@@ -802,12 +839,13 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                 />
             )}
 
-            {/* SAP Controller: screen-level sheet for the advanced actions
-                that used to crowd the face (shuffle, repeat, automix,
-                autoplay, queue, lyrics/info, share, plugins). */}
+            {/* Shared SAP Controller: single instance serves both the "..." button
+                (default options route) and arc menu workspace selections (lyrics,
+                automix, plugin settings, etc.). Mirrors FullCardPlayer architecture. */}
             <SAPController
                 open={controllerOpen}
-                onClose={() => setControllerOpen(false)}
+                onClose={handleCloseController}
+                route={controllerRoute}
                 playback={{
                     shuffle: localShuffle,
                     onToggleShuffle: handleShuffleToggle,
@@ -925,7 +963,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                         <button
                             type="button"
                             className="ap-icon-btn ap-tap ap-menu__btn"
-                            onClick={() => setControllerOpen(true)}
+                            onClick={handleOpenOptions}
                             aria-label="Player options"
                             aria-haspopup="dialog"
                             aria-expanded={controllerOpen}
@@ -1097,6 +1135,38 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                         onToggleMute={toggleMute}
                     />
                 )}
+
+                {/* SEI Canvas visual surface region — hidden by default, opened via the
+                    left surface button (canvas toggle) or right (Up Next queue in-region).
+                    Mirrors the FullCardPlayer SEICanvasHost pattern. */}
+                <SEICanvasHost
+                    open={surface.isCanvasOpen || surface.isQueueOpen}
+                    face="portable"
+                    supported={surface.canvasSupported}
+                    activeSurfaceId={surface.mode === "default" ? undefined : surface.mode}
+                >
+                    {surface.isQueueOpen ? (
+                        <QueueSurface />
+                    ) : (
+                        <div className="ap-sei-canvas-placeholder">
+                            <span className="ap-sei-canvas-placeholder__title">
+                                SEI Canvas
+                            </span>
+                            <span className="ap-sei-canvas-placeholder__hint">
+                                Placeholder visual area — plugins mount here later.
+                            </span>
+                        </div>
+                    )}
+                </SEICanvasHost>
+
+                {/* Surface buttons: left = canvas toggle, right = arc action menu
+                    (SEICanvasActionMenu). Gate on contextual support — the
+                    capability model drives this, matching FullCardPlayer. */}
+                <PlayerSurfaceButtons
+                    surface={surface}
+                    onOpenQueue={() => setQueueOpen(true)}
+                    onOpenFocusedController={handleOpenFocusedController}
+                />
 
                 {currentTrack.purchaseUrl && (
                     <a

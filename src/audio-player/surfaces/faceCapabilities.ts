@@ -84,8 +84,8 @@ export type PlayerFaceCapability = {
  * - `fullCard`     — fully wired: SEICanvas, ScrubberCanvas (waveform),
  *                    contextual menu.
  * - `miniSidebar`  — wired: ScrubberCanvas (progress) + contextual menu.
- * - `portable`     — standalone player; ScrubberCanvas wraps its own scrubber and
- *                    renders the waveform when `showWaveform` is set.
+ * - `portable`     — standalone player with full surface support: SEICanvas,
+ *                    ScrubberCanvas (waveform), and contextual action menu.
  * - `seaCard`      — inline progress + an overlay SEICanvas that shows the
  *                    waveform behind a small trigger (Phase 4).
  * - `stickyBottom` — compact bar; ScrubberCanvas (progress), deep actions in its
