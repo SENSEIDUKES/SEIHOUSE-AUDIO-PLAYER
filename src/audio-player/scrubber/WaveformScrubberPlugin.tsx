@@ -56,6 +56,10 @@ export function resolveWaveformScrubberConfig(
     }
 }
 
+export function withHexAlpha(color: string, alpha: string) {
+    return color.startsWith("#") && color.length === 7 ? `${color}${alpha}` : color
+}
+
 function colorFromConfig(
     config: WaveformScrubberConfig,
     key: "playedColor" | "unplayedColor",
@@ -64,7 +68,7 @@ function colorFromConfig(
     if (config.colorMode === "palette" && config.palette?.length) {
         return key === "playedColor"
             ? config.palette
-            : config.palette.map((color) => `${color}66`)
+            : config.palette.map((color) => withHexAlpha(color, "66"))
     }
     if (config.colorMode === "per-bar" && config.perBarColors?.length) {
         return config.perBarColors

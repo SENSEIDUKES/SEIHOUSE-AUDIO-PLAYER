@@ -58,6 +58,10 @@ export function getScrubberFallbackLabel(
     return "Progress"
 }
 
+export function getScrubberBoundaryKey(pluginId: string, sourceKey: string) {
+    return `${pluginId}-${sourceKey}`
+}
+
 function ProgressFallback(props: ScrubberPluginRenderProps) {
     return (
         <div data-scrubber-fallback="progress">
@@ -100,7 +104,10 @@ export function ScrubberPluginHost({
             data-scrubber-plugin-name={resolved.name}
             data-scrubber-fallback="progress"
         >
-            <ScrubberPluginBoundary fallback={fallback}>
+            <ScrubberPluginBoundary
+                key={getScrubberBoundaryKey(resolved.id, props.sourceKey)}
+                fallback={fallback}
+            >
                 {resolved.render({ ...hostProps, config: selection.config })}
             </ScrubberPluginBoundary>
         </div>

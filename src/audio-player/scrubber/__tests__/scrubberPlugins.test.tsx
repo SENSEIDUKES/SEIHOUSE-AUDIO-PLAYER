@@ -8,9 +8,11 @@ import {
     VaultRowPlayer,
 } from "../../index"
 import {
+    getScrubberBoundaryKey,
     getScrubberFallbackLabel,
     resolveWaveformScrubberConfig,
 } from "../ScrubberPluginHost"
+import { withHexAlpha } from "../WaveformScrubberPlugin"
 import type { Track } from "../../types"
 
 const track: Track = {
@@ -58,5 +60,17 @@ describe("scrubber visual plugins", () => {
         expect(config.barWidth).toBeGreaterThan(2)
         expect(config.playedColor).toBe("#ffffff")
         expect(getScrubberFallbackLabel(undefined)).toBe("Progress")
+    })
+
+    it("keys the plugin boundary by plugin and source key", () => {
+        expect(getScrubberBoundaryKey("waveform", "track-one")).toBe(
+            "waveform-track-one"
+        )
+    })
+
+    it("only applies alpha suffixes to six-digit hex palette colors", () => {
+        expect(withHexAlpha("#112233", "66")).toBe("#11223366")
+        expect(withHexAlpha("red", "66")).toBe("red")
+        expect(withHexAlpha("var(--ap-accent)", "66")).toBe("var(--ap-accent)")
     })
 })
