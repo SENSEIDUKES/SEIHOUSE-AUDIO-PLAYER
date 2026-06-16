@@ -217,13 +217,15 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         [externalPlugins]
     )
     const [waveformEnabled, setWaveformEnabled] = useState(true)
-    const hadWaveformPluginRef = useRef(hasWaveformPlugin)
-    useEffect(() => {
-        if (hasWaveformPlugin && !hadWaveformPluginRef.current) {
-            setWaveformEnabled(true)
-        }
-        hadWaveformPluginRef.current = hasWaveformPlugin
-    }, [hasWaveformPlugin])
+    // Reset the toggle ON each time the plugin (re)activates. Adjusting state
+    // during render (vs. an effect) is the idiomatic pattern and avoids an extra
+    // commit/render pass.
+    const [prevHasWaveformPlugin, setPrevHasWaveformPlugin] =
+        useState(hasWaveformPlugin)
+    if (hasWaveformPlugin !== prevHasWaveformPlugin) {
+        setPrevHasWaveformPlugin(hasWaveformPlugin)
+        if (hasWaveformPlugin) setWaveformEnabled(true)
+    }
 
     // Scrubber mode: an explicit `showWaveform` prop wins; otherwise the plugin
     // (with its toggle) decides; with neither, the basic progress bar.
