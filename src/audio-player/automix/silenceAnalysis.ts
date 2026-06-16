@@ -1,5 +1,6 @@
 import type { Track, TrackTrims } from "../types"
 import { trackKey } from "../utils/trackKey"
+import { getPrimaryTrackSource } from "../utils/sources"
 import { fetchAndDecodeTrack } from "./decodeTrack"
 
 /**
@@ -110,7 +111,7 @@ async function analyze(url: string): Promise<TrackTrims | null> {
  */
 export function ensureTrackAnalysis(track: Track): Promise<TrackTrims | null> {
     const key = trackKey(track)
-    const url = track.audioFile?.trim()
+    const url = getPrimaryTrackSource(track)
     if (!key || !url) return Promise.resolve(null)
     const existing = pending.get(key)
     if (existing) return existing

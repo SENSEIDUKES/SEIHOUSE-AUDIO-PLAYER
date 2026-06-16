@@ -38,6 +38,7 @@ import {
 import { defaultShowVolume } from "./utils/device"
 import { resolveTrackList } from "./utils/trackList"
 import { trackKey } from "./utils/trackKey"
+import { getTrackSources, trackSourcesSignature } from "./utils/sources"
 import "./audio-player.css"
 
 const DEFAULT_AUDIO =
@@ -62,6 +63,7 @@ function trackListSignature(tracks: Track[]): string {
             track.title ?? "",
             track.artist ?? "",
             track.audioFile ?? "",
+            trackSourcesSignature(track),
             track.purchaseUrl ?? "",
             track.lyrics ?? "",
             track.waveformDuration ?? null,
@@ -187,6 +189,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         glowColor = "transparent",
         plugins: externalPlugins = EMPTY_PLUGINS,
         audioBackend = "html5",
+        onFallbackSource,
         className,
         style,
     } = props
@@ -267,7 +270,15 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
     const currentTrack: Track = useMemo(() => {
         if (isPlaylistMode && localQueue[trackIndex]) return localQueue[trackIndex]
-        return { title, artist, audioFile, purchaseUrl, lyrics }
+        return {
+            title,
+            artist,
+            audioFile,
+            fallbackSources: props.fallbackSources,
+            sources: props.sources,
+            purchaseUrl,
+            lyrics,
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         isPlaylistMode,
@@ -276,15 +287,21 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         title,
         artist,
         audioFile,
+        props.fallbackSources,
+        props.sources,
         purchaseUrl,
         lyrics,
     ])
 
-    const src = currentTrack.audioFile?.trim() ?? ""
+    const currentTrackSources = useMemo(
+        () => getTrackSources(currentTrack),
+        [currentTrack]
+    )
+    const src = currentTrackSources[0]?.url ?? ""
 
     const sourceKey = isPlaylistMode
-        ? `${trackIndex}:${trackKey(currentTrack)}`
-        : src
+        ? `${trackIndex}:${trackKey(currentTrack)}:${trackSourcesSignature(currentTrack)}`
+        : `${trackKey(currentTrack)}:${trackSourcesSignature(currentTrack)}`
 
     const playbackOrder = useMemo(
         () => buildPlaybackOrder(localQueue.length, trackIndex, localShuffle),
@@ -315,10 +332,12 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
     const engine = useAudioPlayer({
         src,
+        sources: currentTrackSources,
         sourceKey,
         autoPlay: localAutoPlay,
         loop: localRepeatMode === "one",
         onEnded: () => advanceRef.current(),
+        onFallbackSource,
         audioBackend,
     })
 
@@ -335,6 +354,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         hasError,
         errorMessage,
         hasAudio,
+        currentSrc,
         volumeUnsupported,
         autoplayBlocked,
         toggle,
@@ -380,10 +400,10 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     useEffect(() => {
         if (pendingPlayRef.current) {
             pendingPlayRef.current = false
-            if (src) engine.play(true)
+            if (currentSrc) engine.play(true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sourceKey, src])
+    }, [sourceKey, currentSrc])
 
     // Raw playlist advance shared by the natural end-of-track path and Automix
     // handoffs (same split as the global session provider).
@@ -856,7 +876,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
 
             <div className="ap-content">
                 {engine.getBackendInfo().active === "html5" && (
-                    <audio ref={audioRef} src={hasAudio ? src : undefined} />
+                    <audio ref={audioRef} src={hasAudio ? currentSrc : undefined} />
                 )}
 
                 {!hasAudio && (
@@ -981,7 +1001,7 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                             // fetch+decode; webaudio supplies decoded PCM.
                             url={
                                 engine.getBackendInfo().active === "html5"
-                                    ? src
+                                    ? currentSrc
                                     : undefined
                             }
                             sourceKey={sourceKey}

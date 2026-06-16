@@ -1,5 +1,6 @@
 import type { Track, TrackAnalysis, TrackTrims } from "../types"
 import { trackKey } from "../utils/trackKey"
+import { getPrimaryTrackSource } from "../utils/sources"
 import { fetchAndDecodeTrack } from "./decodeTrack"
 import { scanSilenceEdges, seedTrackTrims } from "./silenceAnalysis"
 import { analyzeRhythm, type RhythmSegmentResult } from "./rhythmClient"
@@ -261,7 +262,7 @@ async function analyze(key: string, url: string): Promise<TrackAnalysis | null> 
  */
 export function ensureProTrackAnalysis(track: Track): Promise<TrackAnalysis | null> {
     const key = trackKey(track)
-    const url = track.audioFile?.trim()
+    const url = getPrimaryTrackSource(track)
     if (!key || !url) return Promise.resolve(null)
     const existing = pending.get(key)
     if (existing) return existing

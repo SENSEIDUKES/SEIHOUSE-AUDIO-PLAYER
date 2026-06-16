@@ -55,6 +55,11 @@ export {
 } from "./automix/transitionPlanner"
 export { formatTime } from "./utils/formatTime"
 export { trackKey } from "./utils/trackKey"
+export {
+    getTrackSources,
+    getPrimaryTrackSource,
+    trackSourcesSignature,
+} from "./utils/sources"
 export { checkCodecSupport } from "./utils/checkCodecSupport"
 export { isIOS, isMobileDevice, defaultShowVolume } from "./utils/device"
 export {
@@ -280,6 +285,8 @@ export type {
 export type { TransitionPlan } from "./automix/transitionPlanner"
 export type {
     Track,
+    TrackSource,
+    FallbackSourceEvent,
     VaultCategory,
     TrackTrims,
     TrackAnalysis,

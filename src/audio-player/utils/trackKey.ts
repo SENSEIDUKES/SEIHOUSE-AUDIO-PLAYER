@@ -1,10 +1,11 @@
 import type { Track } from "../types"
+import { trackSourcesSignature } from "./sources"
 
 /**
  * Returns a stable string that uniquely identifies a track.
  *
  * Prefers `track.id` when set — the cheapest, most reliable key.
- * Falls back to a composite of title + artist + audioFile for tracks that
+ * Falls back to a composite of title + artist + source list for tracks that
  * were created before `id` was introduced. The fallback is good enough for
  * small playlists but can collide at Vault scale (duplicate titles, shared
  * CDN URLs after normalisation, stems/mixes with similar names), which is
@@ -20,6 +21,6 @@ export function trackKey(track: Track): string {
     return `t:${JSON.stringify([
         track.title ?? "",
         track.artist ?? "",
-        track.audioFile ?? "",
+        trackSourcesSignature(track),
     ])}`
 }

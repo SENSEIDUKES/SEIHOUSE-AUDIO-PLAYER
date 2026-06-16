@@ -1,6 +1,10 @@
 import type { CSSProperties, ReactNode } from "react"
 import type { AudioPlayerPlugin } from "./core/plugins/PluginInterface"
-import type { AudioBackendInfo, AudioBackendKind } from "./core/audio/AudioBackend"
+import type {
+    AudioBackendErrorCode,
+    AudioBackendInfo,
+    AudioBackendKind,
+} from "./core/audio/AudioBackend"
 
 /**
  * Vault identity category. Drives a row's visual identity (accent color + label)
@@ -18,6 +22,28 @@ export type VaultCategory =
     | "toFinish"
     | "archived"
 
+/** A concrete audio URL plus an optional MIME type hint. */
+export interface TrackSource {
+    url: string
+    type?: string
+}
+
+/** Emitted when playback automatically moves from one source URL to another. */
+export interface FallbackSourceEvent {
+    /** URL that failed to load/play. */
+    failedSource: string
+    /** URL the engine is switching to. */
+    nextSource: string
+    /** Optional MIME type hint from the selected fallback source. */
+    nextSourceType?: string
+    /** Zero-based index of `nextSource` in the resolved source list. */
+    sourceIndex: number
+    /** Total number of resolved sources for the current track. */
+    sourceCount: number
+    /** Normalized backend error, when available. */
+    error?: AudioBackendErrorCode | string | null
+}
+
 /** A single playable track. */
 export interface Track {
     /**
@@ -28,7 +54,18 @@ export interface Track {
     id?: string
     title: string
     artist: string
-    audioFile: string
+    /** Primary audio URL. Optional when `sources` provides the source list. */
+    audioFile?: string
+    /**
+     * Ordered fallback URLs tried after `audioFile` fails. Ignored when
+     * `sources` is provided.
+     */
+    fallbackSources?: string[]
+    /**
+     * Ordered source list. When provided, this list is authoritative: the first
+     * usable URL is treated as the primary source and the rest as fallbacks.
+     */
+    sources?: TrackSource[]
     purchaseUrl?: string
     lyrics?: string
     /**
@@ -95,6 +132,8 @@ export interface AudioPlayerProps extends AudioPlayerTheme {
 
     /** Single-track fields (used when `tracks` is empty). */
     audioFile?: string
+    fallbackSources?: string[]
+    sources?: TrackSource[]
     title?: string
     artist?: string
     purchaseUrl?: string
@@ -123,6 +162,8 @@ export interface AudioPlayerProps extends AudioPlayerTheme {
      * switch.
      */
     audioBackend?: AudioBackendKind
+    /** Fired when the engine switches from a failed source to a fallback URL. */
+    onFallbackSource?: (event: FallbackSourceEvent) => void
 
     /** Presentation. */
     backgroundImage?: BackgroundImage
@@ -160,6 +201,13 @@ export interface AudioPlayerProps extends AudioPlayerTheme {
 export interface UseAudioPlayerOptions {
     /** Current source URL. Changing it loads a new track. */
     src: string
+    /** Ordered fallback URLs tried after `src` fails. Ignored when `sources` is provided. */
+    fallbackSources?: readonly string[]
+    /**
+     * Ordered source list. When provided, this list is authoritative: index 0 is
+     * the primary source and later entries are tried on load/play failure.
+     */
+    sources?: readonly TrackSource[]
     /**
      * Opaque key that identifies the logical track. When two consecutive tracks
      * share the same `src` URL (e.g. identical audio files in a playlist), the
@@ -173,6 +221,8 @@ export interface UseAudioPlayerOptions {
     loop?: boolean
     /** Fired when the current track reaches its end. */
     onEnded?: () => void
+    /** Fired when the engine switches from a failed source to a fallback URL. */
+    onFallbackSource?: (event: FallbackSourceEvent) => void
     /** Playback backend. Defaults to `"html5"`. Fixed at mount. */
     audioBackend?: AudioBackendKind
 }
@@ -238,6 +288,12 @@ export interface AudioPlayerEngine {
     hasError: boolean
     errorMessage: string
     hasAudio: boolean
+    /** The currently active resolved source URL, including fallback switches. */
+    currentSrc: string
+    /** Zero-based index of `currentSrc` in the resolved source list. */
+    currentSourceIndex: number
+    /** Number of resolved sources available for the current logical track. */
+    sourceCount: number
     /**
      * True when the host environment reports that the browser will not honor
      * programmatic volume changes (e.g. iOS Safari). Consumers can use this to
@@ -354,4 +410,6 @@ export interface AudioSessionProviderProps {
     plugins?: readonly AudioPlayerPlugin[]
     /** Playback backend for the shared session. Defaults to `"html5"`. */
     audioBackend?: AudioBackendKind
+    /** Fired when the engine switches from a failed source to a fallback URL. */
+    onFallbackSource?: (event: FallbackSourceEvent) => void
 }

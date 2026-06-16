@@ -11,6 +11,7 @@ import {
     type TransitionPlan,
 } from "../automix/transitionPlanner"
 import { trackKey } from "../utils/trackKey"
+import { getPrimaryTrackSource } from "../utils/sources"
 
 /** Crossfade duration. Conservative fixed value for V1. */
 export const AUTOMIX_FADE_MS = 5500
@@ -307,7 +308,7 @@ export class AutomixPlugin implements AudioPlayerPlugin {
     /** Wire deck B for the resolved next track and park it at its trim start. */
     private startPreload(next: Track) {
         if (typeof Audio === "undefined" || !this.context) return
-        const src = next.audioFile?.trim()
+        const src = getPrimaryTrackSource(next)
         if (!src) return
         const key = trackKey(next)
         const deck = new Audio()

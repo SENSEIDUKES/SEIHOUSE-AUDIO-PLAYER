@@ -210,7 +210,7 @@ export function SeaCardPlayer({
                             // no precomputed peaks; webaudio supplies decoded PCM.
                             url={
                                 s.getBackendInfo().active === "html5"
-                                    ? track.audioFile
+                                    ? s.currentSrc
                                     : undefined
                             }
                             sourceKey={trackKey(track)}

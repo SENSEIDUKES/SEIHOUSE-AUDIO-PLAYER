@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { AudioPlayerEngine, Track } from "../types"
 import { trackKey } from "../utils/trackKey"
+import { getPrimaryTrackSource } from "../utils/sources"
 import { ensureTrackAnalysis, getTrackTrims } from "./silenceAnalysis"
 
 /**
@@ -207,7 +208,7 @@ export function useAutomix(options: UseAutomixOptions): AutomixController {
     const startPreload = useCallback(
         (next: Track) => {
             if (typeof Audio === "undefined") return
-            const src = next.audioFile?.trim()
+            const src = getPrimaryTrackSource(next)
             if (!src) return
             const key = trackKey(next)
             const deck = new Audio()
