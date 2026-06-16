@@ -596,6 +596,12 @@ function WaveformSection() {
                 for the broken track — the plain progress bar renders in the
                 same slot.
             </p>
+            <p className="lab-section__desc">
+                Waveform is a <strong>Scrubber Visual Plugin</strong>, not a
+                playback plugin. Playback stays owned by the engine. The plugin
+                only renders inside ScrubberCanvas / ScrubberPluginHost and
+                forwards seek events back to the player.
+            </p>
             <div className="lab-section__grid">
                 <div className="lab-states">
                     <div className="lab-state">

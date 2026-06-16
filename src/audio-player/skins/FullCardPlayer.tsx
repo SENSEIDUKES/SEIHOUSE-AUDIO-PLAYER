@@ -3,7 +3,7 @@ import type { CSSProperties } from "react"
 import type { AudioPlayerTheme } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { QueueDrawer } from "../components/QueueDrawer"
-import { WaveformAdapter } from "../components/WaveformAdapter"
+import { ProgressBar } from "../components/ProgressBar"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
 import { useShareTrack } from "../components/useShareTrack"
@@ -18,6 +18,8 @@ import { usePlayerSurface } from "../surfaces/usePlayerSurface"
 import { PlayerHero } from "../surfaces/PlayerHero"
 import { SEICanvasHost } from "../surfaces/SEICanvasHost"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
+import { ScrubberPluginHost } from "../surfaces/ScrubberPluginHost"
+import { WaveformScrubberPlugin } from "../surfaces/WaveformScrubberPlugin"
 import { PlayerSurfaceButtons } from "../surfaces/PlayerSurfaceButtons"
 import { QueueSurface } from "../surfaces/QueueSurface"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
@@ -306,10 +308,11 @@ export function FullCardPlayer({
                     onSeek={s.seek}
                 >
                     <div className="ap-progress-group" role="group" aria-label="Playback progress">
-                        {/* WaveformAdapter (Phase 4): renders the interactive
-                            waveform when the track has peaks, else the progress
-                            bar. fullCard opts into waveform via its capability. */}
-                        <WaveformAdapter
+                        {/* Waveform is mounted as a Scrubber Visual Plugin:
+                            it renders only in ScrubberCanvas and forwards seek
+                            events; the engine remains the playback owner. */}
+                        <ScrubberPluginHost
+                            plugin={WaveformScrubberPlugin}
                             face="fullCard"
                             density={getScrubberDensity("fullCard")}
                             currentTime={currentTime}
@@ -333,6 +336,18 @@ export function FullCardPlayer({
                                     : undefined
                             }
                             sourceKey={currentTrack ? trackKey(currentTrack) : undefined}
+                            fallback={
+                                <ProgressBar
+                                    currentTime={currentTime}
+                                    duration={duration}
+                                    buffered={buffered}
+                                    disabled={!hasAudio}
+                                    isSeeking={isSeeking}
+                                    onSeek={s.seek}
+                                    onSeekStart={() => s.setSeeking(true)}
+                                    onSeekEnd={() => s.setSeeking(false)}
+                                />
+                            }
                         />
                         <div className="ap-times" aria-hidden="true">
                             <span>{formatTime(currentTime)}</span>

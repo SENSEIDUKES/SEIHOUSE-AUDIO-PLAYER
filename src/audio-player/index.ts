@@ -159,6 +159,9 @@ export {
     isNodeInteractive,
     SEICanvasHost,
     ScrubberCanvasHost,
+    ScrubberPluginHost,
+    WaveformScrubberPlugin,
+    createWaveformScrubberPlugin,
     PlayerHero,
     QueueSurface,
 } from "./surfaces"
@@ -181,6 +184,10 @@ export type {
     BuildMenuTreeOptions,
     SEICanvasHostProps,
     ScrubberCanvasHostProps,
+    ScrubberPluginHostProps,
+    ScrubberVisualPlugin,
+    ScrubberVisualPluginRenderProps,
+    WaveformScrubberConfig,
     PlayerHeroProps,
     QueueSurfaceProps,
 } from "./surfaces"

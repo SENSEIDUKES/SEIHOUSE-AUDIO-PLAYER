@@ -54,6 +54,19 @@ export type { SEICanvasHostProps } from "./SEICanvasHost"
 export { ScrubberCanvasHost } from "./ScrubberCanvasHost"
 export type { ScrubberCanvasHostProps } from "./ScrubberCanvasHost"
 
+export { ScrubberPluginHost } from "./ScrubberPluginHost"
+export type {
+    ScrubberPluginHostProps,
+    ScrubberVisualPlugin,
+    ScrubberVisualPluginRenderProps,
+} from "./ScrubberPluginHost"
+
+export {
+    WaveformScrubberPlugin,
+    createWaveformScrubberPlugin,
+} from "./WaveformScrubberPlugin"
+export type { WaveformScrubberConfig } from "./WaveformScrubberPlugin"
+
 export { PlayerHero } from "./PlayerHero"
 export type { PlayerHeroProps } from "./PlayerHero"
 
