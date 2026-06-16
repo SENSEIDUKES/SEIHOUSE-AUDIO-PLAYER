@@ -1,7 +1,47 @@
 import type { Track, TrackSource } from "../types"
 
+function getUrlBase(): string {
+    if (typeof globalThis !== "undefined") {
+        const location = (globalThis as { location?: Location }).location
+        if (location?.href) return location.href
+    }
+    return "http://localhost/"
+}
+
+/**
+ * Normalize a source URL once at the source-resolution boundary so playback,
+ * waveform, automix, cache keys, and fallback comparisons all speak the same
+ * URL language. Relative URLs become absolute in browser environments, matching
+ * what HTMLMediaElement.currentSrc reports after the browser resolves `src`.
+ */
+export function normalizeSourceUrl(url: string): string {
+    const trimmed = url.trim()
+    if (!trimmed) return ""
+
+    try {
+        return new URL(trimmed, getUrlBase()).href
+    } catch {
+        return trimmed
+    }
+}
+
+/** Match stored source URLs against browser-resolved media URLs. */
+export function sourceUrlsMatch(sourceUrl: string, failedUrl: string): boolean {
+    const normalizedSource = normalizeSourceUrl(sourceUrl)
+    const normalizedFailed = normalizeSourceUrl(failedUrl)
+    if (!normalizedSource || !normalizedFailed) return false
+    if (normalizedSource === normalizedFailed) return true
+
+    // Defensive fallback for odd embedded webviews / CDN rewrites where URL()
+    // canonicalization is not enough but the browser still appends a relative
+    // asset path onto an absolute origin.
+    const rawSource = sourceUrl.trim()
+    const rawFailed = failedUrl.trim()
+    return Boolean(rawSource && rawFailed.endsWith(rawSource))
+}
+
 function normalizeSource(source: TrackSource): TrackSource | null {
-    const url = source.url?.trim() ?? ""
+    const url = normalizeSourceUrl(source.url ?? "")
     if (!url) return null
     const type = source.type?.trim()
     return type ? { url, type } : { url }
