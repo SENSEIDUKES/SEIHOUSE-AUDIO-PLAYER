@@ -32,6 +32,9 @@ export interface PlayerHeroProps {
     subtitle?: string
     /** Animate the title when it overflows (ignored while collapsed). */
     marquee?: boolean
+    /** Typography (inline style objects). */
+    titleFont?: React.CSSProperties
+    artistFont?: React.CSSProperties
 }
 
 /**
@@ -57,6 +60,8 @@ export function PlayerHero({
     releaseTitle,
     subtitle,
     marquee = false,
+    titleFont,
+    artistFont,
 }: PlayerHeroProps) {
     const fullTitle = formatVersionedTitle(title, versionLabel)
     const secondary = formatSecondaryLine({
@@ -86,7 +91,7 @@ export function PlayerHero({
         >
             {art && <div className="ap-hero__art">{art}</div>}
             <div className="ap-hero__text">
-                <div className="ap-hero__title" title={fullTitle} dir="auto">
+                <div className="ap-hero__title" title={fullTitle} dir="auto" style={titleFont}>
                     {useMarquee ? (
                         <TextMarquee className="ap-hero__marquee">
                             {titleContent}
@@ -95,7 +100,7 @@ export function PlayerHero({
                         titleContent
                     )}
                 </div>
-                <div className="ap-hero__artist" title={secondary} dir="auto">
+                <div className="ap-hero__artist" title={secondary} dir="auto" style={artistFont}>
                     {secondary}
                 </div>
                 {!collapsed && release && release !== album?.trim() && (

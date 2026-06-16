@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import type { CSSProperties } from "react"
-import type { AudioPlayerTheme } from "../types"
+import type { AudioPlayerTheme, BackgroundImage } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
 import { QueueDrawer } from "../components/QueueDrawer"
 import { WaveformAdapter } from "../components/WaveformAdapter"
@@ -41,6 +41,13 @@ export interface FullCardPlayerProps extends AudioPlayerTheme {
      * boolean to override the per-device default.
      */
     showVolume?: boolean
+    backgroundImage?: BackgroundImage
+    blurSize?: number
+    darkenAmount?: number
+    titleFont?: React.CSSProperties
+    artistFont?: React.CSSProperties
+    showWaveform?: boolean
+    waveformHeight?: number
     className?: string
     style?: CSSProperties
 }
@@ -62,6 +69,13 @@ export interface FullCardPlayerProps extends AudioPlayerTheme {
  */
 export function FullCardPlayer({
     showVolume = defaultShowVolume(),
+    backgroundImage,
+    blurSize = 20,
+    darkenAmount = 0,
+    titleFont,
+    artistFont,
+    showWaveform,
+    waveformHeight,
     className,
     style,
     ...theme
@@ -95,7 +109,10 @@ export function FullCardPlayer({
         canPrevious,
     } = s
 
-    const themeVars = buildThemeVars(theme)
+    const themeVars = buildThemeVars(theme) as any
+    if (blurSize !== undefined) {
+        themeVars["--ap-blur"] = `${blurSize}px`
+    }
     const isEmpty = queue.length === 0
     // Engine gates `isBuffering` to active/pending playback (and clears it on
     // pause/ended), so the spinner can render straight from it.
@@ -151,6 +168,21 @@ export function FullCardPlayer({
             role="region"
             aria-label="Now playing"
         >
+            {backgroundImage?.src && (
+                <div
+                    className="ap-bg-image"
+                    style={{ backgroundImage: `url("${backgroundImage.src}")` }}
+                    aria-hidden="true"
+                />
+            )}
+            {backgroundImage?.src && darkenAmount > 0 && (
+                <div
+                    className="ap-bg-darken"
+                    style={{ backgroundColor: `rgba(0,0,0,${darkenAmount / 100})` }}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* Queue drawer (Up Next) — reads session queue directly */}
             <QueueDrawer
                 queue={queue}
@@ -276,6 +308,8 @@ export function FullCardPlayer({
                     explicit={currentTrack?.explicit}
                     releaseTitle={currentTrack?.releaseTitle}
                     subtitle={currentTrack?.subtitle}
+                    titleFont={titleFont}
+                    artistFont={artistFont}
                     marquee
                 />
 
@@ -330,16 +364,19 @@ export function FullCardPlayer({
                             peaks={currentTrack?.peaks}
                             peaksDuration={currentTrack?.waveformDuration}
                             getDecodedData={s.getDecodedData}
-                            // Fetch+decode fallback (html5 only) so tracks without
-                            // precomputed peaks can still draw a waveform; webaudio
-                            // supplies decoded PCM. wavesurfer stays visual-only —
-                            // the engine remains the sole playback owner.
+                            // url={
+                            //     s.getBackendInfo().active === "html5"
+                            //         ? currentTrack?.audioFile
+                            //         : undefined
+                            // }
                             url={
                                 s.getBackendInfo().active === "html5"
                                     ? currentTrack?.audioFile
                                     : undefined
                             }
                             sourceKey={currentTrack ? trackKey(currentTrack) : undefined}
+                            waveform={showWaveform}
+                            height={waveformHeight}
                         />
                         <div className="ap-times" aria-hidden="true">
                             <span>{formatTime(currentTime)}</span>

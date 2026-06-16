@@ -20,7 +20,7 @@ const ALL_FACES: PlayerFace[] = [
     "seaCard",
     "stickyBottom",
     "vaultRow",
-    "portable",
+
 ]
 
 describe("PLAYER_FACE_CAPABILITIES", () => {
@@ -33,7 +33,7 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
     it("supports SEICanvas only on large faces (fullCard, seaCard, portable)", () => {
         expect(faceSupportsSEICanvas("fullCard")).toBe(true)
         expect(faceSupportsSEICanvas("seaCard")).toBe(true)
-        expect(faceSupportsSEICanvas("portable")).toBe(true)
+
         expect(faceSupportsSEICanvas("miniSidebar")).toBe(false)
         expect(faceSupportsSEICanvas("stickyBottom")).toBe(false)
         expect(faceSupportsSEICanvas("vaultRow")).toBe(false)
@@ -42,7 +42,7 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
     it("assigns each face to a family", () => {
         expect(getFaceFamily("fullCard")).toBe("primary")
         expect(getFaceFamily("seaCard")).toBe("primary")
-        expect(getFaceFamily("portable")).toBe("primary")
+
         expect(getFaceFamily("miniSidebar")).toBe("compact")
         expect(getFaceFamily("stickyBottom")).toBe("compact")
         expect(getFaceFamily("vaultRow")).toBe("compact")
@@ -53,7 +53,7 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
         // they declare no scrubber zone of their own.
         expect(faceSupportsScrubberCanvas("fullCard")).toBe(true)
         expect(faceSupportsScrubberCanvas("seaCard")).toBe(true)
-        expect(faceSupportsScrubberCanvas("portable")).toBe(true)
+
         expect(faceSupportsScrubberCanvas("stickyBottom")).toBe(true)
         expect(faceSupportsScrubberCanvas("miniSidebar")).toBe(false)
         expect(faceSupportsScrubberCanvas("vaultRow")).toBe(false)
@@ -71,7 +71,7 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
         // SAPController three-dot sheet (or have no menu room) and must opt out.
         expect(faceSupportsContextualActions("fullCard")).toBe(true)
         expect(faceSupportsContextualActions("miniSidebar")).toBe(true)
-        expect(faceSupportsContextualActions("portable")).toBe(false)
+
         expect(faceSupportsContextualActions("seaCard")).toBe(false)
         expect(faceSupportsContextualActions("stickyBottom")).toBe(false)
         expect(faceSupportsContextualActions("vaultRow")).toBe(false)
@@ -87,7 +87,7 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
 
     it("opts spacious faces into the waveform and compact faces out", () => {
         expect(faceSupportsWaveform("fullCard")).toBe(true)
-        expect(faceSupportsWaveform("portable")).toBe(true)
+
         expect(faceSupportsWaveform("seaCard")).toBe(true)
         expect(faceSupportsWaveform("miniSidebar")).toBe(false)
         expect(faceSupportsWaveform("stickyBottom")).toBe(false)
@@ -115,7 +115,7 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
 
     it("returns the declared scrubber density per face", () => {
         expect(getScrubberDensity("fullCard")).toBe("standard")
-        expect(getScrubberDensity("portable")).toBe("expanded")
+
         expect(getScrubberDensity("miniSidebar")).toBe("compact")
     })
 

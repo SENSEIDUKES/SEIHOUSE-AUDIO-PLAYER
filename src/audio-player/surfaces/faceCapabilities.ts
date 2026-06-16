@@ -14,7 +14,6 @@ export type PlayerFace =
     | "seaCard" // SeaCardPlayer — marketplace/album card (primary variant)
     | "stickyBottom" // StickyBottomPlayer — persistent bottom bar
     | "vaultRow" // VaultRowPlayer — slim list row
-    | "portable" // default AudioPlayer — standalone portable player
 
 /**
  * The two player families. Every face belongs to exactly one, and inherits that
@@ -141,13 +140,6 @@ const FACE_DEFINITIONS: Record<
 > = {
     // ---- PrimaryPlayer family --------------------------------------------
     fullCard: { family: "primary" }, // flagship; pure family defaults
-    portable: {
-        family: "primary",
-        // Standalone player draws its own transport/menu; no surface-button
-        // contextual menu today.
-        supportsContextualActions: false,
-        scrubberDensity: "expanded",
-    },
     seaCard: {
         // Marketplace variant of the primary family — same rich contract, but
         // its canvas lives in an overlay and it relies on tap-to-play, not the

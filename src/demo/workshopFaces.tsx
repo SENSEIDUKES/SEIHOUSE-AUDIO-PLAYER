@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react"
 import {
-    AudioPlayer,
     FullCardPlayer,
     VaultRowPlayer,
     StickyBottomPlayer,
@@ -88,32 +87,7 @@ export function defaultWorkshopSettings(): WorkshopSettings {
 }
 
 export const WORKSHOP_FACES: readonly WorkshopFaceDefinition[] = [
-    {
-        id: "audio-player",
-        label: "Main AudioPlayer",
-        description:
-            "The full release player — playlist, lyrics, background art, waveform, and every theme prop.",
-        sessionBased: false,
-        controls: ["theme", "background", "typography", "behavior", "display"],
-        render: ({ settings, tracks, plugins }) => (
-            <AudioPlayer
-                tracks={tracks}
-                plugins={plugins}
-                {...settings.theme}
-                backgroundImage={{ src: settings.backgroundImageSrc }}
-                blurSize={settings.blurSize}
-                darkenAmount={settings.darkenAmount}
-                titleFont={settings.titleFont}
-                artistFont={settings.artistFont}
-                autoPlay={settings.autoPlay}
-                shuffle={settings.shuffle}
-                repeatMode={settings.repeatMode}
-                showTracklist={settings.showTracklist}
-                showVolume={settings.showVolume}
-                showWaveform={settings.showWaveform}
-            />
-        ),
-    },
+
     {
         id: "full-card",
         label: "FullCardPlayer",

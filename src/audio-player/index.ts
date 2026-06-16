@@ -1,4 +1,4 @@
-export { AudioPlayer, default } from "./AudioPlayer"
+
 export { useAudioPlayer } from "./useAudioPlayer"
 export { useAutomix, AUTOMIX_FADE_MS } from "./automix/useAutomix"
 export { PluginManager } from "./core/plugins/PluginManager"
@@ -281,15 +281,16 @@ export type { TransitionPlan } from "./automix/transitionPlanner"
 export type {
     Track,
     VaultCategory,
-    TrackTrims,
-    TrackAnalysis,
-    AudioPlayerProps,
     AudioPlayerTheme,
     BackgroundImage,
+
     UseAudioPlayerOptions,
+    TrackTrims,
+    TrackAnalysis,
+    BufferedRange,
     AudioPlayerEngine,
-    SessionEngine,
     RepeatMode,
+    SessionEngine,
     AudioSessionProviderProps,
 } from "./types"
 export type { FullCardPlayerProps } from "./skins/FullCardPlayer"

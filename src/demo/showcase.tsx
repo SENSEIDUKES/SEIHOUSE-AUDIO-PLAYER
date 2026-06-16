@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 import {
-    AudioPlayer,
     AudioSessionProvider,
     FullCardPlayer,
     VaultRowPlayer,
@@ -129,7 +128,7 @@ export function Showcase() {
         <main className="product-preview" aria-labelledby="showcase-title">
             <section className="product-preview__hero">
                 <div className="product-preview__copy">
-                    <div className="product-preview__pill">Featured release · Portable AudioPlayer</div>
+                    <div className="product-preview__pill">Featured release · Portable MainAudioPlayer</div>
                     <h1 id="showcase-title" className="product-preview__title">
                         One playback layer, two player families.
                     </h1>
@@ -159,21 +158,20 @@ export function Showcase() {
                             <span>Featured release · PrimaryPlayer · portable</span>
                             <strong>No Luck — SENSEI</strong>
                         </div>
-                        <AudioPlayer
-                            tracks={noLuckTracks}
-                            showTracklist
-                            showWaveform
-                            repeatMode="all"
-                            accentColor="#22D3A6"
-                            progressColor="#22D3A6"
-                            trackColor="rgba(34,211,166,0.22)"
-                            playIconColor="#07100d"
-                            textColor="#FFFFFF"
-                            backgroundColor="rgba(9, 12, 18, 0.68)"
-                            backgroundImage={{ src: NO_LUCK_COVER }}
-                            darkenAmount={58}
-                            blurSize={24}
-                        />
+                        <AudioSessionProvider initialQueue={noLuckTracks} repeatMode="all">
+                            <FullCardPlayer
+                                showWaveform
+                                accentColor="#22D3A6"
+                                progressColor="#22D3A6"
+                                trackColor="rgba(34,211,166,0.22)"
+                                playIconColor="#07100d"
+                                textColor="#FFFFFF"
+                                backgroundColor="rgba(9, 12, 18, 0.68)"
+                                backgroundImage={{ src: NO_LUCK_COVER }}
+                                darkenAmount={58}
+                                blurSize={24}
+                            />
+                        </AudioSessionProvider>
                     </div>
                 </div>
             </section>

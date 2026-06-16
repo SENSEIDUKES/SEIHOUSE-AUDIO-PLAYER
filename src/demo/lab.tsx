@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import {
-    AudioPlayer,
     AudioSessionProvider,
     FullCardPlayer,
     VaultRowPlayer,
@@ -91,13 +90,15 @@ function MobileWidthMatrixSection() {
                     {MATRIX_WIDTHS.map((w) => (
                         <div key={w} className="lab-width-cell" style={{ width: w }}>
                             <div className="lab-width-cell__label">{w}px</div>
-                            <AudioPlayer
-                                tracks={stressPlaylist}
-                                repeatMode="all"
+                            <AudioSessionProvider initialQueue={stressPlaylist} repeatMode="all">
+    <FullCardPlayer
+                                
+                                
                                 accentColor="#ffffff"
                                 progressColor="#ffffff"
                                 backgroundColor="rgba(20,20,28,0.6)"
                             />
+</AudioSessionProvider>
                             <AudioSessionProvider initialQueue={stressPlaylist}>
                                 <FullCardPlayer {...SEA_THEME} />
                                 <StickyBottomPlayer fixed={false} {...SEA_THEME} />
@@ -292,14 +293,16 @@ function PluginArchitectureSection() {
                             Baseline playback. No optional plugins are registered.
                         </p>
                         <div className="lab-state__player">
-                            <AudioPlayer
-                                title="Plugin Baseline"
-                                artist="SEIHouse"
-                                audioFile={SAMPLE}
+                            <AudioSessionProvider initialQueue={[{ title: "Plugin Baseline", artist: "SEIHouse", audioFile: SAMPLE }]}>
+    <FullCardPlayer
+                                
+                                
+                                
                                 accentColor="#ffffff"
                                 progressColor="#ffffff"
                                 backgroundColor="rgba(20,20,28,0.6)"
                             />
+</AudioSessionProvider>
                         </div>
                     </div>
                     <div className="lab-state">
@@ -309,15 +312,17 @@ function PluginArchitectureSection() {
                             seeking via <code>KeyboardShortcutPlugin</code>.
                         </p>
                         <div className="lab-state__player">
-                            <AudioPlayer
-                                title="Keyboard Plugin"
-                                artist="SEIHouse"
-                                audioFile={SAMPLE}
-                                plugins={keyboardPlugins}
+                            <AudioSessionProvider initialQueue={[{ title: "Keyboard Plugin", artist: "SEIHouse", audioFile: SAMPLE }]} plugins={keyboardPlugins}>
+    <FullCardPlayer
+                                
+                                
+                                
+                                
                                 accentColor="#22D3A6"
                                 progressColor="#22D3A6"
                                 backgroundColor="rgba(16,28,22,0.6)"
                             />
+</AudioSessionProvider>
                         </div>
                     </div>
                     <div className="lab-state">
@@ -327,15 +332,17 @@ function PluginArchitectureSection() {
                             synchronization, and sleep timer UI run together.
                         </p>
                         <div className="lab-state__player">
-                            <AudioPlayer
-                                tracks={playlist}
-                                showTracklist
-                                repeatMode="all"
-                                plugins={threePlugins}
+                            <AudioSessionProvider initialQueue={playlist} repeatMode="all" plugins={threePlugins}>
+    <FullCardPlayer
+                                
+                                
+                                
+                                
                                 accentColor="#7C5CFF"
                                 progressColor="#7C5CFF"
                                 backgroundColor="rgba(20,20,28,0.6)"
                             />
+</AudioSessionProvider>
                         </div>
                         <div className="lab-state__note">
                             lyric: {activeLyric}
@@ -410,15 +417,17 @@ function AutomixSection() {
                             Automix transitions {transitioning ? "· crossfading…" : ""}
                         </h3>
                         <div className="lab-state__player">
-                            <AudioPlayer
-                                tracks={proPlaylist}
-                                showTracklist
-                                repeatMode="all"
-                                plugins={proPlugins}
+                            <AudioSessionProvider initialQueue={proPlaylist} repeatMode="all" plugins={proPlugins}>
+    <FullCardPlayer
+                                
+                                
+                                
+                                
                                 accentColor="#F4B860"
                                 progressColor="#F4B860"
                                 backgroundColor="rgba(28,22,14,0.6)"
                             />
+</AudioSessionProvider>
                         </div>
                         <pre
                             className="lab-state__note"
@@ -486,16 +495,18 @@ function AudioBackendSection() {
                             ))}
                         </div>
                         <div className="lab-state__player">
-                            <AudioPlayer
+                            <AudioSessionProvider initialQueue={playlist} repeatMode="all" audioBackend={backend}>
+    <FullCardPlayer
                                 key={backend}
-                                audioBackend={backend}
-                                tracks={playlist}
-                                showTracklist
-                                repeatMode="all"
+                                
+                                
+                                
+                                
                                 accentColor="#0EA5E9"
                                 progressColor="#0EA5E9"
                                 backgroundColor="rgba(14,30,40,0.6)"
                             />
+</AudioSessionProvider>
                         </div>
                         <div className="lab-state__note">
                             expect: identical UX on both backends · webaudio
@@ -535,7 +546,7 @@ function PluginRegistrySection() {
                 The <code>PluginRegistryProvider</code> wraps a registry of
                 built-in SEIHouse plugins. Browse available plugins, install
                 them, and toggle them active/inactive. Active plugins are
-                passed into the <code>AudioPlayer</code> below — install the
+                passed into the <code>FullCardPlayer</code> below — install the
                 keyboard plugin to control playback with Space/J/K/L, add
                 analytics to see console.table output, or activate{" "}
                 <strong>Auto Theme</strong> to recolor the player from the album
@@ -546,22 +557,24 @@ function PluginRegistrySection() {
                     <PluginManagerPanel />
                     <div className="lab-plugin-registry-player">
                         <h3 className="lab-plugin-registry-player__title">
-                            AudioPlayer with active registry plugins
+                            FullCardPlayer with active registry plugins
                             <span className="lab-plugin-manager__badge">
                                 {plugins.length} active
                             </span>
                         </h3>
-                        <AudioPlayer
-                            tracks={playlist}
-                            showTracklist
-                            repeatMode="all"
-                            plugins={plugins}
+                        <AudioSessionProvider initialQueue={playlist} repeatMode="all" plugins={plugins}>
+    <FullCardPlayer
+                            
+                            
+                            
+                            
                             backgroundImage={{ src: OG_BG }}
                             darkenAmount={45}
                             accentColor="#7C5CFF"
                             progressColor="#7C5CFF"
                             backgroundColor="rgba(20,20,28,0.6)"
                         />
+</AudioSessionProvider>
                         <div
                             id="registry-lyrics-line"
                             className="lab-plugin-registry-player__lyric-line"
@@ -616,18 +629,20 @@ function WaveformSection() {
                             ))}
                         </div>
                         <div className="lab-state__player">
-                            <AudioPlayer
+                            <AudioSessionProvider initialQueue={playlist} repeatMode="all" audioBackend={backend}>
+    <FullCardPlayer
                                 key={backend}
-                                audioBackend={backend}
-                                showWaveform
-                                tracks={playlist}
-                                showTracklist
-                                repeatMode="all"
+                                
+                                
+                                
+                                
+                                
                                 accentColor="#F59E0B"
                                 progressColor="#F59E0B"
                                 trackColor="rgba(245,158,11,0.3)"
                                 backgroundColor="rgba(40,30,14,0.6)"
                             />
+</AudioSessionProvider>
                         </div>
                         <div className="lab-state__note">
                             expect: waveform appears once peaks are ready ·
@@ -656,7 +671,7 @@ export function Lab() {
                         Manually exercise the portable SEIHouse audio player
                         across card grids, mobile previews, broken states,
                         stress tests, backend checks, and plugin coverage.
-                        Every player on this page is a real AudioPlayer
+                        Every player on this page is a real FullCardPlayer
                         component; only the surrounding chrome is fake. Broken
                         states are expected here — the clean gallery lives in
                         Showcase.
@@ -697,8 +712,10 @@ export function Lab() {
                                             <span className="lab-card__price">{c.price}</span>
                                         </div>
                                         <div className="lab-card__player">
-                                            <AudioPlayer title={c.t} artist={c.a} audioFile={SAMPLE} showVolume={false}
+                                            <AudioSessionProvider initialQueue={[{ title: c.t, artist: c.a, audioFile: SAMPLE }]}>
+    <FullCardPlayer    
                                                 accentColor="#ffffff" progressColor="#ffffff" backgroundColor="rgba(20,20,28,0.6)" />
+</AudioSessionProvider>
                                         </div>
                                     </div>
                                 </article>
@@ -721,8 +738,10 @@ export function Lab() {
                             <aside className="lab-app__sidebar">
                                 <h4 className="lab-app__sidebar-title">Now playing</h4>
                                 <div className="lab-app__player">
-                                    <AudioPlayer title="Sidebar Player" artist="SEIHouse" audioFile={SAMPLE}
-                                        accentColor="#22D3A6" progressColor="#22D3A6" backgroundColor="rgba(20,28,24,0.6)" showTracklist={false} />
+                                    <AudioSessionProvider initialQueue={[{ title: "Sidebar Player", artist: "SEIHouse", audioFile: SAMPLE }]}>
+    <FullCardPlayer   
+                                        accentColor="#22D3A6" progressColor="#22D3A6" backgroundColor="rgba(20,28,24,0.6)"  />
+</AudioSessionProvider>
                                 </div>
                                 <h4 className="lab-app__sidebar-title">Browse</h4>
                                 <nav className="lab-app__nav">
@@ -767,14 +786,18 @@ export function Lab() {
                         <div className="lab-mobile-row">
                             <PhoneFrame topLeft="9:41" topRight="Now playing" art="linear-gradient(135deg,#7C5CFF,#22D3A6)">
                                 <div className="lab-phone__player">
-                                    <AudioPlayer title="On The Go" artist="SEIHouse" audioFile={SAMPLE}
+                                    <AudioSessionProvider initialQueue={[{ title: "On The Go", artist: "SEIHouse", audioFile: SAMPLE }]}>
+    <FullCardPlayer   
                                         accentColor="#ffffff" progressColor="#ffffff" backgroundColor="rgba(20,20,28,0.55)" />
+</AudioSessionProvider>
                                 </div>
                             </PhoneFrame>
                             <PhoneFrame topLeft="9:41" topRight="Playlist" art="linear-gradient(135deg,#F59E0B,#EF4444)">
                                 <div className="lab-phone__player">
-                                    <AudioPlayer tracks={playlist} showTracklist shuffle repeatMode="all"
+                                    <AudioSessionProvider initialQueue={playlist} repeatMode="all" shuffle>
+    <FullCardPlayer    
                                         accentColor="#ffffff" progressColor="#ffffff" backgroundColor="rgba(20,20,28,0.55)" />
+</AudioSessionProvider>
                                 </div>
                             </PhoneFrame>
                         </div>
@@ -792,8 +815,10 @@ export function Lab() {
                     <div className="lab-section__grid">
                         <div className="lab-sticky-wrap">
                             <div className="lab-sticky">
-                                <AudioPlayer title="Sticky test" artist="SEIHouse" audioFile={SAMPLE}
+                                <AudioSessionProvider initialQueue={[{ title: "Sticky test", artist: "SEIHouse", audioFile: SAMPLE }]}>
+    <FullCardPlayer   
                                     accentColor="#ffffff" progressColor="#ffffff" backgroundColor="rgba(20,20,28,0.6)" />
+</AudioSessionProvider>
                             </div>
                             <div className="lab-sticky__filler">
                                 <h4>Long content #1</h4>
@@ -820,9 +845,11 @@ export function Lab() {
                     <div className="lab-section__grid">
                         <div className="lab-rapid">
                             <div className="lab-rapid__player">
-                                <AudioPlayer title="Spam me" artist="SEIHouse" audioFile={SAMPLE}
+                                <AudioSessionProvider initialQueue={[{ title: "Spam me", artist: "SEIHouse", audioFile: SAMPLE }]}>
+    <FullCardPlayer   
                                     accentColor="#7C5CFF" progressColor="#7C5CFF" backgroundColor="rgba(20,20,28,0.6)"
-                                    showTracklist={false} lyrics="spam\nthe\nkeys" />
+                                      />
+</AudioSessionProvider>
                             </div>
                             <div className="lab-rapid__steps">
                                 <RapidStep n={1} title="Play / pause" body="Tap quickly 10+ times. Play icon should never desync with the audio element." />
@@ -853,8 +880,10 @@ export function Lab() {
                                 <h3 className="lab-state__title lab-state__title--err">Broken audio URL</h3>
                                 <p className="lab-state__desc">Confirms the error banner, the message, and that the <strong>Retry</strong> button surfaces a fresh load attempt.</p>
                                 <div className="lab-state__player">
-                                    <AudioPlayer title="Network down" artist="SEIHouse" audioFile={BROKEN}
+                                    <AudioSessionProvider initialQueue={[{ title: "Network down", artist: "SEIHouse", audioFile: BROKEN }]}>
+    <FullCardPlayer   
                                         accentColor="#ff5a55" progressColor="#ff5a55" backgroundColor="rgba(40,16,16,0.6)" />
+</AudioSessionProvider>
                                 </div>
                                 <div className="lab-state__note">expect: red error banner + Retry · play disabled · progress empty</div>
                             </div>
@@ -862,8 +891,10 @@ export function Lab() {
                                 <h3 className="lab-state__title lab-state__title--warn">Empty audio source</h3>
                                 <p className="lab-state__desc">An empty string triggers the <strong>"Audio file missing"</strong> banner. All transport controls must be disabled.</p>
                                 <div className="lab-state__player">
-                                    <AudioPlayer title="Placeholder" artist="SEIHouse" audioFile=""
+                                    <AudioSessionProvider >
+    <FullCardPlayer   
                                         accentColor="#F59E0B" progressColor="#F59E0B" backgroundColor="rgba(30,25,16,0.6)" />
+</AudioSessionProvider>
                                 </div>
                                 <div className="lab-state__note">expect: warning banner · no scrub · mute + skip disabled</div>
                             </div>
@@ -871,8 +902,10 @@ export function Lab() {
                                 <h3 className="lab-state__title lab-state__title--ok">Playlist with mixed validity</h3>
                                 <p className="lab-state__desc">Switch to the broken track to see the playlist keep state but show the error banner for that source only.</p>
                                 <div className="lab-state__player">
-                                    <AudioPlayer tracks={playlist} showTracklist repeatMode="one"
+                                    <AudioSessionProvider initialQueue={playlist} repeatMode="one">
+    <FullCardPlayer   
                                         accentColor="#22D3A6" progressColor="#22D3A6" backgroundColor="rgba(16,28,22,0.6)" />
+</AudioSessionProvider>
                                 </div>
                                 <div className="lab-state__note">expect: switching tracks resets time · broken track shows error · EQ on active row</div>
                             </div>

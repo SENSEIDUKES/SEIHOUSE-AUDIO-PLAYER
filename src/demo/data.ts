@@ -1,18 +1,12 @@
-import type { AudioPlayerProps, Track } from "../audio-player"
+import type { FullCardPlayerProps, Track } from "../audio-player"
 
 /* ----------------------------- OG Framer defaults ----------------------------- */
-export const OG_DEFAULTS: AudioPlayerProps = {
-    audioFile:
-        "https://framerusercontent.com/assets/8w3IUatLX9a5JVJ6XPCVuHi94.mp3",
+export const OG_DEFAULTS: FullCardPlayerProps = {
     backgroundColor: "rgba(255, 255, 255, 0)",
     accentColor: "#FFFFFF",
     textColor: "#FFFFFF",
     progressColor: "#000000",
     trackColor: "#CCCCCC",
-    autoPlay: false,
-    loop: false,
-    title: "Audio Track",
-    artist: "Artist Name",
     titleFont: {
         fontSize: "24px",
         fontWeight: 600,
@@ -27,13 +21,10 @@ export const OG_DEFAULTS: AudioPlayerProps = {
     },
     playIconColor: "#000000",
     blurSize: 20,
-    purchaseUrl: "",
     backgroundImage: {
         src: "https://framerusercontent.com/images/GfGkADagM4KEibNcIiRUWlfrR0.jpg",
     },
     darkenAmount: 45,
-    lyrics: "",
-    showTracklist: false,
 }
 
 export const SAMPLE =
