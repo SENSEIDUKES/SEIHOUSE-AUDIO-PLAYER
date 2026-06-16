@@ -1,8 +1,58 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import type { AudioPlayerEngine, BufferedRange, Track, UseAudioPlayerOptions } from "./types"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type {
+    AudioPlayerEngine,
+    BufferedRange,
+    Track,
+    TrackSource,
+    UseAudioPlayerOptions,
+} from "./types"
 import type { AudioBackend } from "./core/audio/AudioBackend"
 import { createAudioBackend } from "./core/audio/AudioBackendFactory"
 import { shouldEnterBuffering } from "./utils/buffering"
+import { getTrackSources } from "./utils/sources"
+
+type ActiveSourceState = {
+    sourceKey: string
+    signature: string
+    index: number
+}
+
+function normalizeSource(source: TrackSource): TrackSource | null {
+    const url = source.url?.trim() ?? ""
+    if (!url) return null
+    const type = source.type?.trim()
+    return type ? { url, type } : { url }
+}
+
+function dedupeSources(sourceList: readonly TrackSource[]): TrackSource[] {
+    const seen = new Set<string>()
+    const next: TrackSource[] = []
+    for (const source of sourceList) {
+        const normalized = normalizeSource(source)
+        if (!normalized || seen.has(normalized.url)) continue
+        seen.add(normalized.url)
+        next.push(normalized)
+    }
+    return next
+}
+
+function resolveEngineSources(
+    src: string,
+    sources?: readonly TrackSource[],
+    fallbackSources?: readonly string[]
+): TrackSource[] {
+    const declaredSources = dedupeSources(sources ?? [])
+    if (declaredSources.length > 0) return declaredSources
+
+    return dedupeSources([
+        { url: src },
+        ...(fallbackSources ?? []).map((url) => ({ url })),
+    ])
+}
+
+function sourceListSignature(sources: readonly TrackSource[]): string {
+    return JSON.stringify(sources.map((source) => [source.url, source.type ?? ""]))
+}
 
 /**
  * Headless audio engine. Owns a playback backend (HTML5 `<audio>` element by
@@ -28,12 +78,38 @@ export function useAudioPlayer(
 ): AudioPlayerEngine {
     const {
         src,
+        fallbackSources,
+        sources,
         sourceKey = src,
         autoPlay = false,
         loop = false,
         onEnded,
+        onFallbackSource,
         audioBackend = "html5",
     } = options
+
+    const resolvedSources = useMemo(
+        () => resolveEngineSources(src, sources, fallbackSources),
+        [fallbackSources, sources, src]
+    )
+    const sourcesSignature = useMemo(
+        () => sourceListSignature(resolvedSources),
+        [resolvedSources]
+    )
+    const [activeSourceState, setActiveSourceState] = useState<ActiveSourceState>(
+        () => ({ sourceKey, signature: sourcesSignature, index: 0 })
+    )
+    const sourceStateMatches =
+        activeSourceState.sourceKey === sourceKey &&
+        activeSourceState.signature === sourcesSignature
+    const currentSourceIndex = sourceStateMatches
+        ? Math.max(
+              0,
+              Math.min(activeSourceState.index, resolvedSources.length - 1)
+          )
+        : 0
+    const currentSource = resolvedSources[currentSourceIndex] ?? null
+    const currentSrc = currentSource?.url ?? ""
 
     const audioRef = useRef<HTMLAudioElement>(null)
     const backendRef = useRef<AudioBackend | null>(null)
@@ -63,6 +139,19 @@ export function useAudioPlayer(
     const pendingSeekRef = useRef<number | null>(null)
     const onEndedRef = useRef(onEnded)
     onEndedRef.current = onEnded
+    const onFallbackSourceRef = useRef(onFallbackSource)
+    onFallbackSourceRef.current = onFallbackSource
+    const sourceListRef = useRef(resolvedSources)
+    const sourceKeyRef = useRef(sourceKey)
+    const sourcesSignatureRef = useRef(sourcesSignature)
+    const currentSourceIndexRef = useRef(currentSourceIndex)
+    const currentSrcRef = useRef(currentSrc)
+    const fallbackShouldPlayRef = useRef<boolean | null>(null)
+    sourceListRef.current = resolvedSources
+    sourceKeyRef.current = sourceKey
+    sourcesSignatureRef.current = sourcesSignature
+    currentSourceIndexRef.current = currentSourceIndex
+    currentSrcRef.current = currentSrc
     /**
      * Bumped on any operation that should invalidate in-flight async audio
      * callbacks (src change, retry, loadAndPlay). Comparing the captured token
@@ -91,7 +180,7 @@ export function useAudioPlayer(
     const volumeUnsupportedRef = useRef(false)
     const [volumeUnsupported, setVolumeUnsupported] = useState(false)
 
-    const hasAudio = src.trim().length > 0
+    const hasAudio = currentSrc.trim().length > 0
 
     const bumpToken = useCallback(() => {
         playbackTokenRef.current += 1
@@ -114,6 +203,65 @@ export function useAudioPlayer(
         }
     }, [])
 
+    const tryFallbackSource = useCallback(
+        (
+            failedSource: string,
+            error: string | null | undefined,
+            shouldPlayAfterSwitch: boolean
+        ): boolean => {
+            const sourceList = sourceListRef.current
+            const failedUrl = failedSource.trim()
+            const previousActiveSource = currentSrcRef.current
+            const activeIndex = currentSourceIndexRef.current
+            const failedIndex = failedUrl
+                ? sourceList.findIndex((source) => source.url === failedUrl)
+                : -1
+            const nextIndex = (failedIndex >= 0 ? failedIndex : activeIndex) + 1
+
+            // If a stale error from a previous URL arrives after we've already
+            // moved to its fallback, suppress it without advancing again.
+            if (nextIndex <= activeIndex) return true
+            if (nextIndex >= sourceList.length) return false
+
+            const nextSource = sourceList[nextIndex]
+            if (!nextSource?.url) return false
+
+            bumpToken()
+            clearPendingPlay()
+            stopLoop()
+            backendRef.current?.pause()
+            if (fadeFrameRef.current !== null) {
+                cancelAnimationFrame(fadeFrameRef.current)
+                fadeFrameRef.current = null
+            }
+
+            fallbackShouldPlayRef.current = shouldPlayAfterSwitch
+            currentSourceIndexRef.current = nextIndex
+            currentSrcRef.current = nextSource.url
+            setHasError(false)
+            setErrorMessage("")
+            setAutoplayBlocked(false)
+            setIsBuffering(shouldPlayAfterSwitch)
+            setActiveSourceState({
+                sourceKey: sourceKeyRef.current,
+                signature: sourcesSignatureRef.current,
+                index: nextIndex,
+            })
+
+            onFallbackSourceRef.current?.({
+                failedSource: failedUrl || previousActiveSource,
+                nextSource: nextSource.url,
+                nextSourceType: nextSource.type,
+                sourceIndex: nextIndex,
+                sourceCount: sourceList.length,
+                error: error ?? null,
+            })
+
+            return true
+        },
+        [bumpToken, clearPendingPlay, stopLoop]
+    )
+
     const setSeeking = useCallback((active: boolean) => {
         isSeekingRef.current = active
         setIsSeekingState(active)
@@ -132,8 +280,12 @@ export function useAudioPlayer(
             let playPromise: Promise<void>
             try {
                 playPromise = backend.play()
-            } catch {
+            } catch (error: unknown) {
                 if (playbackTokenRef.current !== token) return
+                const name = error instanceof Error ? error.name : ""
+                if (tryFallbackSource(currentSrcRef.current, name || "unknown", true)) {
+                    return
+                }
                 if (reportError) {
                     setHasError(true)
                     setErrorMessage("Playback failed. Please try again.")
@@ -170,6 +322,16 @@ export function useAudioPlayer(
                         return
                     }
 
+                    if (
+                        tryFallbackSource(
+                            backend.getMediaElement()?.currentSrc || currentSrcRef.current,
+                            name || backend.getError() || "unknown",
+                            true
+                        )
+                    ) {
+                        return
+                    }
+
                     setIsPlaying(false)
                     setIsBuffering(false)
                     if (reportError) {
@@ -182,7 +344,7 @@ export function useAudioPlayer(
                     }
                 })
         },
-        [bumpToken, clearPendingPlay, hasAudio]
+        [bumpToken, clearPendingPlay, hasAudio, tryFallbackSource]
     )
 
     const pause = useCallback(() => {
@@ -313,9 +475,9 @@ export function useAudioPlayer(
     }, [])
 
     const preload = useCallback((track: Track) => {
-        const url = track.audioFile?.trim() ?? ""
-        if (!url) return
-        backendRef.current!.preload(url)
+        for (const source of getTrackSources(track)) {
+            backendRef.current!.preload(source.url)
+        }
     }, [])
 
     const unload = useCallback(() => {
@@ -492,11 +654,19 @@ export function useAudioPlayer(
         }
         const clearBuffering = () => setIsBuffering(false)
         const handleError = () => {
+            const error = backend.getError()
+            const failedSource = currentSrcRef.current
+            const shouldPlayFallback =
+                isPlayingRef.current || playPromiseRef.current !== null
+            if (tryFallbackSource(failedSource, error, shouldPlayFallback)) {
+                return
+            }
+
             setIsBuffering(false)
             isPlayingRef.current = false
             setIsPlaying(false)
             setHasError(true)
-            switch (backend.getError()) {
+            switch (error) {
                 case "aborted":
                     setErrorMessage("Playback was aborted. Please try again.")
                     break
@@ -563,7 +733,7 @@ export function useAudioPlayer(
             backend.removeEventListener("error", handleError)
             backend.removeEventListener("loadstart", handleLoadStart)
         }
-    }, [stopLoop])
+    }, [stopLoop, tryFallbackSource])
 
     // Reset + load whenever the source changes. Continues playing across track
     // changes; the initial load only plays when autoPlay is requested.
@@ -571,10 +741,16 @@ export function useAudioPlayer(
         const backend = backendRef.current!
         if (!backend.isAttached()) return
 
+        const isFallbackSwitch = fallbackShouldPlayRef.current !== null
         const isFirstLoad = isFirstLoadRef.current
         isFirstLoadRef.current = false
         const wasPlaying = isPlayingRef.current
-        const shouldPlay = isFirstLoad ? autoPlay : wasPlaying
+        const shouldPlay = isFallbackSwitch
+            ? fallbackShouldPlayRef.current === true
+            : isFirstLoad
+              ? autoPlay
+              : wasPlaying
+        fallbackShouldPlayRef.current = null
 
         // Bump the token up front so any in-flight play() / error handlers
         // from the previous source become no-ops.
@@ -614,7 +790,7 @@ export function useAudioPlayer(
 
         // No-op for html5 (the host JSX owns the src attribute); arms the URL
         // for the webaudio backend.
-        backend.setSource(src)
+        backend.setSource(currentSrc)
         if (!isFirstLoad) {
             backend.load()
         }
@@ -671,7 +847,7 @@ export function useAudioPlayer(
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [src, sourceKey])
+    }, [currentSrc, sourceKey, sourcesSignature])
 
     // Keep the backend's volume/loop in sync with state on mount + changes.
     useEffect(() => {
@@ -712,6 +888,9 @@ export function useAudioPlayer(
         hasError,
         errorMessage,
         hasAudio,
+        currentSrc,
+        currentSourceIndex,
+        sourceCount: resolvedSources.length,
         volumeUnsupported,
         autoplayBlocked,
         play,

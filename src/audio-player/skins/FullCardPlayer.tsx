@@ -10,6 +10,7 @@ import { useShareTrack } from "../components/useShareTrack"
 import { formatTime } from "../utils/formatTime"
 import { defaultShowVolume } from "../utils/device"
 import { trackKey } from "../utils/trackKey"
+import { trackSourcesSignature } from "../utils/sources"
 import { useMediaSessionObserver } from "../headless/useMediaSessionObserver"
 import { buildThemeVars } from "./themeVars"
 import { usePlayerSurface } from "../surfaces/usePlayerSurface"
@@ -107,7 +108,9 @@ export function FullCardPlayer({
     useMediaSessionObserver(s, {
         title: currentTrack?.title ?? "",
         artist: currentTrack?.artist ?? "",
-        sourceKey: currentTrack ? `${currentIndex}:${trackKey(currentTrack)}` : "empty",
+        sourceKey: currentTrack
+            ? `${currentIndex}:${trackKey(currentTrack)}:${trackSourcesSignature(currentTrack)}`
+            : "empty",
         onNext: canNext ? s.next : undefined,
         onPrevious: canPrevious ? s.previous : undefined,
     })
@@ -336,7 +339,7 @@ export function FullCardPlayer({
                             // the engine remains the sole playback owner.
                             url={
                                 s.getBackendInfo().active === "html5"
-                                    ? currentTrack?.audioFile
+                                    ? s.currentSrc
                                     : undefined
                             }
                             sourceKey={currentTrack ? trackKey(currentTrack) : undefined}

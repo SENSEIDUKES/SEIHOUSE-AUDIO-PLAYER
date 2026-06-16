@@ -27,6 +27,7 @@ import {
 } from "../plugins/automixIntegration"
 import { usePluginManager } from "../core/plugins/usePluginManager"
 import { trackKey } from "../utils/trackKey"
+import { getTrackSources, getPrimaryTrackSource, trackSourcesSignature } from "../utils/sources"
 
 const AudioSessionContext = createContext<SessionEngine | null>(null)
 const EMPTY_PLUGINS: readonly AudioPlayerPlugin[] = []
@@ -66,6 +67,7 @@ export function AudioSessionProvider({
     automix: initialAutomix = false,
     plugins: externalPlugins = EMPTY_PLUGINS,
     audioBackend = "html5",
+    onFallbackSource,
 }: AudioSessionProviderProps) {
     const [queue, setQueueState] = useState<Track[]>(initialQueue)
     const [currentIndex, setCurrentIndex] = useState<number>(
@@ -93,13 +95,17 @@ export function AudioSessionProvider({
     const pendingPlayRef = useRef(false)
 
     const currentTrack = currentIndex >= 0 ? queue[currentIndex] ?? null : null
-    const src = currentTrack?.audioFile?.trim() ?? ""
+    const currentTrackSources = useMemo(
+        () => getTrackSources(currentTrack),
+        [currentTrack]
+    )
+    const src = currentTrackSources[0]?.url ?? ""
     // Identity key for the engine's reset lifecycle. Encodes the queue position
     // AND the track identity so switching between two tracks that share the same
     // audio URL still resets currentTime/duration/buffered/error state — `src`
     // alone wouldn't change in that case.
     const sourceKey = currentTrack
-        ? `${currentIndex}:${trackKey(currentTrack)}`
+        ? `${currentIndex}:${trackKey(currentTrack)}:${trackSourcesSignature(currentTrack)}`
         : "empty"
 
     // Forward declaration: onEnded needs the latest queue navigation logic.
@@ -107,10 +113,12 @@ export function AudioSessionProvider({
 
     const engine = useAudioPlayer({
         src,
+        sources: currentTrackSources,
         sourceKey,
         autoPlay,
         loop: repeatMode === "one", // native loop suppresses `ended` (no double-advance)
         onEnded: () => advanceRef.current(),
+        onFallbackSource,
         audioBackend,
     })
 
@@ -327,10 +335,10 @@ export function AudioSessionProvider({
     useEffect(() => {
         if (pendingPlayRef.current) {
             pendingPlayRef.current = false
-            if (src) engine.play(true)
+            if (engine.currentSrc) engine.play(true)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sourceKey, src])
+    }, [sourceKey, engine.currentSrc])
 
     const setQueue = useCallback(
         (tracks: Track[], startIndex = 0, autoPlayNext = false) => {
@@ -372,7 +380,7 @@ export function AudioSessionProvider({
                         q.map((t, i) => (i === existing ? track : t))
                     )
                     if (existing === currentIndex) {
-                        const nextSrc = track.audioFile?.trim() ?? ""
+                        const nextSrc = getPrimaryTrackSource(track)
                         const sourceChanged = nextSrc !== src
                         if (!engine.isPlaying) {
                             if (sourceChanged) {
@@ -569,7 +577,7 @@ export function AudioSessionProvider({
         <AudioSessionContext.Provider value={value}>
             {/* The single, app-wide audio element. Skins never render their own. */}
             {engine.getBackendInfo().active === "html5" && (
-                <audio ref={engine.audioRef} src={src || undefined} />
+                <audio ref={engine.audioRef} src={engine.currentSrc || undefined} />
             )}
             {children}
         </AudioSessionContext.Provider>

@@ -4,6 +4,7 @@ import type {
 } from "../core/plugins/PluginInterface"
 import type { Track } from "../types"
 import { computePeaksFromUrl } from "../core/waveform/peaks"
+import { getPrimaryTrackSource } from "../utils/sources"
 
 export interface WaveformPluginConfig {
     name?: string
@@ -51,7 +52,7 @@ export class WaveformPlugin implements AudioPlayerPlugin {
     /** Best-effort peaks pre-warm; never throws into the host. */
     private warm(track: Track | null) {
         if (!this.prewarmPeaks) return
-        const url = track?.audioFile
+        const url = getPrimaryTrackSource(track)
         // Tracks shipping their own peaks need no fetch+decode pass.
         if (!url || track?.peaks || this.prewarmed === url) return
         this.prewarmed = url

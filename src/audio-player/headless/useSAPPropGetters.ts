@@ -236,6 +236,7 @@ export function useSAPPropGetters(
             const { ref, ...rest } = user
             return {
                 ...rest,
+                src: engine.hasAudio ? engine.currentSrc : undefined,
                 ref: mergeRefs(engine.audioRef, ref),
             }
         }
