@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { KeyboardShortcutPlugin, createKeyboardShortcutPlugin } from "../KeyboardShortcutPlugin"
+import { createKeyboardShortcutPlugin } from "../KeyboardShortcutPlugin"
 import type { PluginPlayerContext } from "../../core/plugins/PluginInterface"
 
 describe("KeyboardShortcutPlugin", () => {

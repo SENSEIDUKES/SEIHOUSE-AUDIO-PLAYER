@@ -6,7 +6,9 @@ import {
 } from "react"
 import { FixedSizeList } from "react-window"
 // @ts-ignore
-import AutoSizer from "react-virtualized-auto-sizer"
+import { AutoSizer as _AutoSizer } from "react-virtualized-auto-sizer"
+
+const AutoSizer: any = _AutoSizer
 import type { Track } from "../types"
 import { trackKey } from "../utils/trackKey"
 

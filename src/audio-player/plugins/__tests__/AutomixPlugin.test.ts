@@ -2,11 +2,9 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { AutomixPlugin, createAutomixPlugin } from "../AutomixPlugin"
+import { createAutomixPlugin } from "../AutomixPlugin"
 import type { PluginPlayerContext } from "../../core/plugins/PluginInterface"
-import * as silenceAnalysis from "../../automix/silenceAnalysis"
 import * as trackAnalysis from "../../automix/trackAnalysis"
-import * as transitionPlanner from "../../automix/transitionPlanner"
 import type { AudioPlayerEngine } from "../../types"
 
 vi.mock("../../automix/silenceAnalysis", () => ({

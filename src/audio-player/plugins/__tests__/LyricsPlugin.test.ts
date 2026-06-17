@@ -2,9 +2,8 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { LyricsPlugin, createLyricsPlugin } from "../LyricsPlugin"
+import { createLyricsPlugin } from "../LyricsPlugin"
 import type { PluginPlayerContext } from "../../core/plugins/PluginInterface"
-import type { Track } from "../../types"
 
 describe("LyricsPlugin", () => {
     let mockContext: PluginPlayerContext
@@ -190,7 +189,7 @@ describe("LyricsPlugin", () => {
             const newTrack = { id: "1", title: "Test", url: "url", lyrics: "[00:00.00] Track Lyrics" }
             mockContext.getCurrentTrack = vi.fn().mockReturnValue(newTrack)
             
-            plugin.onTrackLoad?.(newTrack)
+            plugin.onTrackLoad?.(newTrack as any)
             plugin.onTimeUpdate?.(5)
             
             expect(onLineChange).toHaveBeenCalledWith(

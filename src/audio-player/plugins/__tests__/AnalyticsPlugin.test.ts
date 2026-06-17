@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { AnalyticsPlugin, createAnalyticsPlugin } from "../AnalyticsPlugin"
+import { createAnalyticsPlugin } from "../AnalyticsPlugin"
 import type { PluginPlayerContext } from "../../core/plugins/PluginInterface"
 
 describe("AnalyticsPlugin", () => {
@@ -213,16 +213,16 @@ describe("AnalyticsPlugin", () => {
             const plugin = createAnalyticsPlugin({ endpoint: "/api/events" })
             plugin.init(mockContext)
             
-            const originalWindow = global.window
+            const originalWindow = (globalThis as any).window
             // @ts-ignore
-            delete global.window
+            delete (globalThis as any).window
             
             plugin.onPlay?.()
             
             expect(navigator.sendBeacon).not.toHaveBeenCalled()
             expect(fetch).not.toHaveBeenCalled()
             
-            global.window = originalWindow
+            ;(globalThis as any).window = originalWindow
         })
     })
 })

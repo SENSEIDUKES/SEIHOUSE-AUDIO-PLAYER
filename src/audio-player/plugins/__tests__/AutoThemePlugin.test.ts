@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { AutoThemePlugin, createAutoThemePlugin } from "../AutoThemePlugin"
+import { createAutoThemePlugin } from "../AutoThemePlugin"
 import type { PluginPlayerContext } from "../../core/plugins/PluginInterface"
 import * as colorExtraction from "../../utils/colorExtraction"
 
@@ -81,7 +81,7 @@ describe("AutoThemePlugin", () => {
             
             // Initial state: root has variables from previous plugin maybe, or just manually set
             rootElement.style.setProperty("--ap-accent", "black")
-            plugin2.currentSrc = "something_else" // private field hack
+            ;(plugin2 as any).currentSrc = "something_else" // private field hack
             // Better: just trigger a valid load then clear
             plugin2.init(mockContext)
             await Promise.resolve()
