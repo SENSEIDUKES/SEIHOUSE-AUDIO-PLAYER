@@ -297,8 +297,8 @@ export function AudioSessionProvider({
     // path won't run. A plugin (internal automix or external) gets first claim:
     // when a crossfade already moved (or is moving) the queue, the normal
     // advance must not run again.
-    advanceRef.current = async () => {
-        if (await pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
+    advanceRef.current = () => {
+        if (pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
         advanceToNextRef.current()
     }
 

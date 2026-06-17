@@ -75,11 +75,11 @@ export class PluginError extends Error {
       operation: this.operation,
       recoverable: this.recoverable,
       timestamp: this.timestamp.toISOString(),
-      cause: this.cause instanceof Error ? {
+      cause: this.cause instanceof PluginError ? this.cause.toJSON() : (this.cause instanceof Error ? {
         name: this.cause.name,
         message: this.cause.message,
         stack: this.cause.stack
-      } : this.cause,
+      } : this.cause),
       stack: this.stack
     }
   }
@@ -457,17 +457,14 @@ export class PluginErrorBoundary {
             this.handler.onPluginDisabled(this.pluginName, this.getFailureCount())
           ).catch(() => {})
           if (fallback !== undefined) return fallback
-          // Return undefined as the result - the plugin is disabled but we don't
-          // want to crash the caller (e.g. trigger iterating over all plugins)
-          return undefined as unknown as T
+          throw pluginError
 
         case 'skip_hook':
           return fallback as T
 
         case 'fallback':
           if (fallback !== undefined) return fallback
-          // No fallback available - return undefined gracefully
-          return undefined as unknown as T
+          throw pluginError
 
         default:
           // For 'none' or unknown actions, throw
@@ -595,12 +592,16 @@ export function withErrorBoundary<P extends Record<string, unknown>>(
       // Wrap functions to go through the error boundary
       return function (this: unknown, ...args: unknown[]) {
         const fn = value.bind(target)
-        // For async functions, use execute; for sync, use executeSync
         const operation = `method:${String(prop)}`
-        if (fn.constructor.name === 'AsyncFunction') {
-          return boundary.execute(operation, () => fn(...args))
+        try {
+          const result = fn(...args)
+          if (result instanceof Promise || (result && typeof (result as any).then === 'function')) {
+            return boundary.execute(operation, () => result)
+          }
+          return result
+        } catch (error) {
+          return boundary.executeSync(operation, () => { throw error })
         }
-        return boundary.executeSync(operation, () => fn(...args))
       }
     }
   })

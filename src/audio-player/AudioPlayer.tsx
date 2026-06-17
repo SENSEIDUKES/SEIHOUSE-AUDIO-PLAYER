@@ -527,8 +527,8 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     // Single advance path: whichever plugin (internal automix or an external
     // one) claims the track-end suppresses the host advance, so a crossfade
     // handoff can never double-advance the queue.
-    advanceRef.current = async () => {
-        if (await pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
+    advanceRef.current = () => {
+        if (pluginManager.triggerUntilHandled("onTrackEnded", currentTrack)) return
         advanceToNextRef.current()
     }
 

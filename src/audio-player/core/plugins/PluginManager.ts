@@ -82,16 +82,29 @@ export class PluginManager {
 
         let cleanup: (() => void) | undefined
         try {
-            const result = plugin.init(this.context)
+            const result = errorBoundary.executeSync(
+                "init",
+                () => plugin.init(this.context),
+                {
+                    recoverable: false,
+                    severity: "error",
+                    context: { pluginName: plugin.name }
+                }
+            )
             if (typeof result === "function") cleanup = result
             this.plugins.set(plugin.name, { plugin, cleanup, errorBoundary })
         } catch (error) {
-            this.handleError(`init:${plugin.name}`, error, "error", { pluginName: plugin.name })
             try {
-                plugin.destroy()
-            } catch (destroyError) {
-                this.handleError(`destroy:${plugin.name}`, destroyError, "error", { pluginName: plugin.name })
-            }
+                errorBoundary.executeSync(
+                    "destroy",
+                    () => plugin.destroy(),
+                    {
+                        recoverable: false,
+                        severity: "error",
+                        context: { pluginName: plugin.name }
+                    }
+                )
+            } catch {}
         }
     }
 
@@ -204,26 +217,29 @@ export class PluginManager {
         return results
     }
 
-    async triggerUntilHandled<K extends PluginHookName>(
+    triggerUntilHandled<K extends PluginHookName>(
         hook: K,
         ...args: PluginHookArgs[K]
-    ): Promise<boolean> {
+    ): boolean {
         for (const { plugin, errorBoundary } of this.plugins.values()) {
             const hookFn = plugin[hook]
             if (typeof hookFn !== "function") continue
             
-            const handled = await errorBoundary.execute(
-                `hook:${hook}`,
-                () => this.debugger.measureAsync(plugin.name, hook, async () => (await (hookFn as HookCallable<K>).call(plugin, ...args)) === true),
-                {
-                    recoverable: true,
-                    severity: "warning",
-                    fallback: false,
-                    context: { hook, pluginName: plugin.name }
-                }
-            )
-            
-            if (handled) return true
+            try {
+                const handled = errorBoundary.executeSync(
+                    `hook:${hook}`,
+                    () => this.debugger.measure(plugin.name, hook, () => (hookFn as HookCallable<K>).call(plugin, ...args) === true),
+                    {
+                        recoverable: true,
+                        severity: "warning",
+                        fallback: false,
+                        context: { hook, pluginName: plugin.name }
+                    }
+                )
+                if (handled) return true
+            } catch {
+                continue
+            }
         }
         return false
     }

@@ -6,7 +6,11 @@ export function validateConfig<T extends z.ZodTypeAny>(schema: T, config: unknow
         return result.data
     }
     console.warn(`[Plugin:${pluginName}] Configuration validation failed, falling back to safe defaults.`, result.error)
-    return schema.parse({})
+    const fallbackResult = schema.safeParse({})
+    if (fallbackResult.success) {
+        return fallbackResult.data
+    }
+    return {} as z.infer<T>
 }
 
 export const WaveformPluginConfigSchema = z.object({
