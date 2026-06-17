@@ -71,16 +71,16 @@ export function PlayerSurfaceButtons({
             showQueueButton
                 ? buildMenuTree({
                       canvasSupported: surface.canvasSupported,
-                      isCanvasActive: surface.isCanvasOpen,
                       includeTransport: showTransport,
                       canPrevious,
                       canNext,
+                      activeCanvasSurfaceId: surface.activeCanvasSurfaceId,
                   })
                 : [],
         [
             showQueueButton,
             surface.canvasSupported,
-            surface.isCanvasOpen,
+            surface.activeCanvasSurfaceId,
             showTransport,
             canPrevious,
             canNext,
@@ -129,6 +129,7 @@ export function PlayerSurfaceButtons({
                 <SEICanvasActionMenu
                     items={menuItems}
                     onActivateCanvas={surface.toggleCanvas}
+                    onActivateCanvasSurface={surface.openCanvasSurface}
                     onOpenQueue={onOpenQueue ?? surface.toggleQueue}
                     onOpenWorkspace={handleOpenWorkspace}
                     onSelect={handleSelect}

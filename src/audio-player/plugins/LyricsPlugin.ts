@@ -99,7 +99,12 @@ export class LyricsPlugin implements AudioPlayerPlugin {
     }
 }
 
-function parseLyrics(lyrics: string): TimedLyricLine[] {
+/**
+ * Parse a lyrics string into ordered {@link TimedLyricLine}s. Understands the
+ * LRC `[mm:ss.cc] text` timestamp form and falls back to plain lines at time 0.
+ * Exported so canvas/visual surfaces can render lyrics without re-parsing.
+ */
+export function parseLyrics(lyrics: string): TimedLyricLine[] {
     const lines = lyrics
         .split(/\r?\n/)
         .map((line) => line.trim())

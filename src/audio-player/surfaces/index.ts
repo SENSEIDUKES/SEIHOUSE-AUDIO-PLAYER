@@ -63,3 +63,6 @@ export type { PlayerHeroProps } from "./PlayerHero"
 
 export { QueueSurface } from "./QueueSurface"
 export type { QueueSurfaceProps } from "./QueueSurface"
+
+export { CanvasSurfaceRenderer } from "./CanvasSurfaceRenderer"
+export type { CanvasSurfaceRendererProps } from "./CanvasSurfaceRenderer"

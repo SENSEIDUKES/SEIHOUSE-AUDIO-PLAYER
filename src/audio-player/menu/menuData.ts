@@ -1,11 +1,19 @@
 import type { ComponentType } from "react"
-import type { WorkspaceRoute } from "../components/workspace/workspaceRoutes"
+import {
+    isWorkspaceRoute,
+    type WorkspaceRoute,
+} from "../components/workspace/workspaceRoutes"
+import {
+    getPluginCanvasSurfaceId,
+    getPluginSettingsRoute,
+    isHeadlessPlugin,
+} from "../plugins/surfaces/pluginSurfaceHelpers"
+import { getPluginSurfaceDefinitionsForMenuBranch } from "../plugins/surfaces/defaultPluginSurfaces"
+import type { PluginSurfaceDefinition } from "../plugins/surfaces/pluginSurfaceTypes"
 import {
     AgentIcon,
     AnalyticsIcon,
     AutomixIcon,
-    CanvasIcon,
-    CommentsIcon,
     LyricsIcon,
     NextIcon,
     PlaybackIcon,
@@ -14,6 +22,7 @@ import {
     QueueIcon,
     RepeatIcon,
     VisualIcon,
+    WaveIcon,
 } from "../skins/icons"
 
 /**
@@ -69,13 +78,24 @@ export interface MenuNode {
      * field is additive and backward compatible.
      */
     workspaceRoute?: WorkspaceRoute
+    /**
+     * Leaf: the plugin SEI Canvas surface this node activates (e.g. `"lyrics"`).
+     * When the host wires `onActivateCanvasSurface`, this takes precedence over
+     * `workspaceRoute`/`actionId`, so a canvas plugin opens inside SEI Canvas
+     * rather than a settings workspace. Additive and backward compatible.
+     */
+    canvasSurfaceId?: string
 }
 
 export interface BuildMenuTreeOptions {
-    /** Whether the current face can host the SEICanvas. Disables the Canvas node. */
+    /** Whether the current face can host the SEICanvas. Disables canvas nodes. */
     canvasSupported: boolean
-    /** Whether the canvas surface is currently open (marks Canvas as `active`). */
-    isCanvasActive: boolean
+    /**
+     * Retained for backward compatibility. The generic Canvas node was replaced
+     * by per-plugin canvas nodes (see `activeCanvasSurfaceId`); this flag no
+     * longer affects the tree.
+     */
+    isCanvasActive?: boolean
     /**
      * Add Previous/Next transport leaves under Playback. Compact faces that drop
      * their inline skip buttons (e.g. the mini sidebar) opt in so skip/next moves
@@ -86,26 +106,85 @@ export interface BuildMenuTreeOptions {
     /** Whether previous/next are currently available (gates the transport leaves). */
     canPrevious?: boolean
     canNext?: boolean
+    /**
+     * Id of the plugin canvas surface currently open (e.g. "lyrics"), used to
+     * mark its node `active`. Omitted/null means no plugin canvas is open.
+     */
+    activeCanvasSurfaceId?: string | null
+}
+
+/** Per-plugin icon for derived menu nodes; falls back to the generic PluginIcon. */
+const PLUGIN_MENU_ICONS: Record<string, ComponentType> = {
+    lyrics: LyricsIcon,
+    waveform: WaveIcon,
+    "auto-theme": VisualIcon,
+    automix: AutomixIcon,
+    "sleep-timer": PlaybackIcon,
+    analytics: AnalyticsIcon,
 }
 
 /**
- * The V1 hardcoded menu tree. A builder (not a constant) so per-face capability
- * and live surface state can adjust node states without the arc knowing about
- * the player. Replaceable later by a plugin-registry-driven tree of the same shape.
+ * Convert a surface definition into a menu leaf. Canvas/dual plugins become
+ * canvas-activation nodes (the primary action); settings plugins become
+ * workspace-route nodes when their route is registered, else a disabled
+ * placeholder. Headless plugins produce no node.
+ */
+function pluginSurfaceNode(
+    def: PluginSurfaceDefinition,
+    canvasSupported: boolean,
+    activeCanvasSurfaceId: string | null
+): MenuNode | null {
+    if (isHeadlessPlugin(def)) return null
+    const icon = PLUGIN_MENU_ICONS[def.pluginId] ?? PluginIcon
+
+    const surfaceId = getPluginCanvasSurfaceId(def)
+    if (surfaceId) {
+        const state: MenuItemState = !canvasSupported
+            ? "disabled"
+            : activeCanvasSurfaceId === surfaceId
+              ? "active"
+              : "available"
+        return { id: def.pluginId, label: def.label, icon, state, canvasSurfaceId: surfaceId }
+    }
+
+    const route = getPluginSettingsRoute(def)
+    if (route && isWorkspaceRoute(route)) {
+        return {
+            id: def.pluginId,
+            label: def.label,
+            icon,
+            workspaceRoute: route,
+        }
+    }
+    // Settings plugin without a registered route: show it but keep it inert.
+    return { id: def.pluginId, label: def.label, icon, state: "disabled" }
+}
+
+/** Build a sub-branch from the plugins assigned to a menu branch. */
+function pluginBranchNodes(
+    defs: PluginSurfaceDefinition[],
+    canvasSupported: boolean,
+    activeCanvasSurfaceId: string | null
+): MenuNode[] {
+    return defs
+        .map((def) => pluginSurfaceNode(def, canvasSupported, activeCanvasSurfaceId))
+        .filter((node): node is MenuNode => node !== null)
+}
+
+/**
+ * The menu tree. Plugin branches are derived from `DEFAULT_PLUGIN_SURFACES` so
+ * the surface routing contract is the single source of truth for where plugins
+ * appear; the transport/playback and agent branches stay hardcoded. A builder
+ * (not a constant) so per-face capability and live surface state adjust node
+ * states without the arc knowing about the player.
  */
 export function buildMenuTree({
     canvasSupported,
-    isCanvasActive,
     includeTransport = false,
     canPrevious = false,
     canNext = false,
+    activeCanvasSurfaceId = null,
 }: BuildMenuTreeOptions): MenuNode[] {
-    const canvasState: MenuItemState = !canvasSupported
-        ? "disabled"
-        : isCanvasActive
-          ? "active"
-          : "available"
-
     const transportNodes: MenuNode[] = includeTransport
         ? [
               {
@@ -125,53 +204,59 @@ export function buildMenuTree({
           ]
         : []
 
+    // Plugin sub-branches, derived from the surface catalog.
+    const visualNodes = pluginBranchNodes(
+        getPluginSurfaceDefinitionsForMenuBranch("plugin:visual"),
+        canvasSupported,
+        activeCanvasSurfaceId
+    )
+    // Automix keeps its dedicated spot under the top-level Playback branch, so
+    // it is excluded here to avoid surfacing it twice.
+    const pluginPlaybackNodes = pluginBranchNodes(
+        getPluginSurfaceDefinitionsForMenuBranch("playback").filter(
+            (def) => def.pluginId !== "automix"
+        ),
+        canvasSupported,
+        activeCanvasSurfaceId
+    )
+    const analyticsNodes = pluginBranchNodes(
+        getPluginSurfaceDefinitionsForMenuBranch("plugin:analytics"),
+        canvasSupported,
+        activeCanvasSurfaceId
+    )
+
+    const pluginChildren: MenuNode[] = []
+    if (visualNodes.length > 0) {
+        pluginChildren.push({
+            id: "visual",
+            label: "Visual",
+            icon: VisualIcon,
+            children: visualNodes,
+        })
+    }
+    if (pluginPlaybackNodes.length > 0) {
+        pluginChildren.push({
+            id: "plugin-playback",
+            label: "Playback",
+            icon: PlaybackIcon,
+            children: pluginPlaybackNodes,
+        })
+    }
+    if (analyticsNodes.length > 0) {
+        pluginChildren.push({
+            id: "plugin-analytics",
+            label: "Analytics",
+            icon: AnalyticsIcon,
+            children: analyticsNodes,
+        })
+    }
+
     return [
         {
             id: "plugin",
             label: "Plugin",
             icon: PluginIcon,
-            children: [
-                {
-                    id: "visual",
-                    label: "Visual",
-                    icon: VisualIcon,
-                    children: [
-                        {
-                            id: "lyrics",
-                            label: "Lyrics",
-                            icon: LyricsIcon,
-                            state: "inactive",
-                            actionId: "select-lyrics",
-                            workspaceRoute: "plugin-settings:lyrics",
-                        },
-                        {
-                            id: "canvas",
-                            label: "Canvas",
-                            icon: CanvasIcon,
-                            state: canvasState,
-                            actionId: "activate-canvas",
-                        },
-                        {
-                            id: "comments",
-                            label: "Comments",
-                            icon: CommentsIcon,
-                            state: "coming-soon",
-                        },
-                    ],
-                },
-                {
-                    id: "plugin-playback",
-                    label: "Playback",
-                    icon: PlaybackIcon,
-                    state: "coming-soon",
-                },
-                {
-                    id: "analytics",
-                    label: "Analytics",
-                    icon: AnalyticsIcon,
-                    state: "coming-soon",
-                },
-            ],
+            children: pluginChildren,
         },
         {
             id: "playback",

@@ -15,6 +15,11 @@ export interface UsePlayerSurfaceResult {
     mode: PlayerSurfaceMode
     isCanvasOpen: boolean
     isQueueOpen: boolean
+    /**
+     * Id of the plugin canvas surface currently open (e.g. "lyrics"), or `null`
+     * for the generic empty canvas / non-canvas modes.
+     */
+    activeCanvasSurfaceId: string | null
     /** Derived: canvas open on a hero-collapse-capable face. */
     isHeroCollapsed: boolean
     /** Whether this face can host the SEICanvas at all. */
@@ -23,6 +28,8 @@ export interface UsePlayerSurfaceResult {
     contextualSupported: boolean
     toggleCanvas: () => void
     toggleQueue: () => void
+    /** Open the SEI Canvas hosting a specific plugin surface (e.g. "lyrics"). */
+    openCanvasSurface: (surfaceId: string) => void
     closeSurface: () => void
 }
 
@@ -38,6 +45,10 @@ export function usePlayerSurface(face: PlayerFace): UsePlayerSurfaceResult {
 
     const toggleCanvas = useCallback(() => dispatch({ type: "toggleCanvas" }), [])
     const toggleQueue = useCallback(() => dispatch({ type: "toggleQueue" }), [])
+    const openCanvasSurface = useCallback(
+        (surfaceId: string) => dispatch({ type: "openCanvasSurface", surfaceId }),
+        []
+    )
     const closeSurface = useCallback(() => dispatch({ type: "close" }), [])
 
     return useMemo<UsePlayerSurfaceResult>(
@@ -45,13 +56,23 @@ export function usePlayerSurface(face: PlayerFace): UsePlayerSurfaceResult {
             mode: state.mode,
             isCanvasOpen: state.mode === "canvas",
             isQueueOpen: state.mode === "queue",
+            activeCanvasSurfaceId: state.activeCanvasSurfaceId,
             isHeroCollapsed: deriveHeroCollapsed(state.mode, face),
             canvasSupported: faceSupportsSEICanvas(face),
             contextualSupported: faceSupportsContextualActions(face),
             toggleCanvas,
             toggleQueue,
+            openCanvasSurface,
             closeSurface,
         }),
-        [state.mode, face, toggleCanvas, toggleQueue, closeSurface]
+        [
+            state.mode,
+            state.activeCanvasSurfaceId,
+            face,
+            toggleCanvas,
+            toggleQueue,
+            openCanvasSurface,
+            closeSurface,
+        ]
     )
 }

@@ -46,6 +46,7 @@ export {
 export {
     LyricsPlugin,
     createLyricsPlugin,
+    parseLyrics,
 } from "./plugins/LyricsPlugin"
 export {
     SleepTimerPlugin,
@@ -222,6 +223,7 @@ export {
     ScrubberCanvasHost,
     PlayerHero,
     QueueSurface,
+    CanvasSurfaceRenderer,
 } from "./surfaces"
 
 export type {
@@ -245,6 +247,7 @@ export type {
     ScrubberCanvasHostProps,
     PlayerHeroProps,
     QueueSurfaceProps,
+    CanvasSurfaceRendererProps,
 } from "./surfaces"
 
 export type {

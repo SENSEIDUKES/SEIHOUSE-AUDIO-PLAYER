@@ -80,6 +80,46 @@ describe("surfaceReducer", () => {
             "default"
         )
     })
+
+    it("opens a plugin canvas surface on a supported face", () => {
+        const next = surfaceReducer(
+            INITIAL_SURFACE_STATE,
+            { type: "openCanvasSurface", surfaceId: "lyrics" },
+            "fullCard"
+        )
+        expect(next.mode).toBe("canvas")
+        expect(next.activeCanvasSurfaceId).toBe("lyrics")
+    })
+
+    it("rejects opening a plugin canvas surface on an unsupported face", () => {
+        const next = surfaceReducer(
+            INITIAL_SURFACE_STATE,
+            { type: "openCanvasSurface", surfaceId: "lyrics" },
+            "miniSidebar"
+        )
+        expect(next.mode).toBe("default")
+        expect(next.activeCanvasSurfaceId).toBeNull()
+    })
+
+    it("clears the active surface id when toggling to queue or generic canvas", () => {
+        const lyricsOpen = surfaceReducer(
+            INITIAL_SURFACE_STATE,
+            { type: "openCanvasSurface", surfaceId: "lyrics" },
+            "fullCard"
+        )
+        const queue = surfaceReducer(lyricsOpen, { type: "toggleQueue" }, "fullCard")
+        expect(queue.mode).toBe("queue")
+        expect(queue.activeCanvasSurfaceId).toBeNull()
+
+        const genericCanvas = surfaceReducer(
+            lyricsOpen,
+            { type: "toggleCanvas" },
+            "fullCard"
+        )
+        // lyrics canvas was open, so a plain toggle closes back to default.
+        expect(genericCanvas.mode).toBe("default")
+        expect(genericCanvas.activeCanvasSurfaceId).toBeNull()
+    })
 })
 
 describe("deriveHeroCollapsed", () => {

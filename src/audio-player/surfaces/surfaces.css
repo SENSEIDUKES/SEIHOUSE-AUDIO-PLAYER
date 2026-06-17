@@ -68,6 +68,49 @@
     color: var(--ap-text, #fff);
     text-align: center;
 }
+
+/* Plugin canvas surfaces (Phase 3): rendered inside the SEICanvas host. */
+.ap-canvas-surface {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    color: var(--ap-text, #fff);
+}
+.ap-canvas-surface--empty {
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    padding: 24px;
+    text-align: center;
+}
+.ap-canvas-surface__empty-text {
+    font-size: 13px;
+    opacity: 0.6;
+}
+.ap-canvas-surface__head {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.6;
+    padding: 2px 4px;
+}
+.ap-canvas-surface__lyrics-list {
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+.ap-canvas-surface__lyrics-line {
+    font-size: 15px;
+    line-height: 1.5;
+    opacity: 0.9;
+}
 .ap-sei-canvas-placeholder__title {
     font-size: 14px;
     font-weight: 600;

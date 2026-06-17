@@ -9,15 +9,25 @@ export type PlayerSurfaceMode = "default" | "canvas" | "queue"
 
 export interface SurfaceState {
     mode: PlayerSurfaceMode
+    /**
+     * When the canvas hosts a specific plugin surface (e.g. "lyrics"), its id.
+     * `null` for the generic empty canvas and for the non-canvas modes. The id
+     * only ever coexists with `mode: "canvas"`.
+     */
+    activeCanvasSurfaceId: string | null
 }
 
 export type SurfaceAction =
     | { type: "toggleCanvas" }
     | { type: "toggleQueue" }
     | { type: "open"; mode: Exclude<PlayerSurfaceMode, "default"> }
+    | { type: "openCanvasSurface"; surfaceId: string }
     | { type: "close" }
 
-export const INITIAL_SURFACE_STATE: SurfaceState = { mode: "default" }
+export const INITIAL_SURFACE_STATE: SurfaceState = {
+    mode: "default",
+    activeCanvasSurfaceId: null,
+}
 
 /** Canvas mode is only legal on faces that DECLARE SEICanvas support. */
 export function canEnterCanvas(face: PlayerFace): boolean {
@@ -36,18 +46,35 @@ export function surfaceReducer(
     switch (action.type) {
         case "toggleCanvas":
             if (!canEnterCanvas(face)) return state
-            return { mode: state.mode === "canvas" ? "default" : "canvas" }
+            // Generic canvas toggle never carries a plugin surface id.
+            return {
+                mode: state.mode === "canvas" ? "default" : "canvas",
+                activeCanvasSurfaceId: null,
+            }
         case "toggleQueue":
             // Queue is available on every face.
-            return { mode: state.mode === "queue" ? "default" : "queue" }
+            return {
+                mode: state.mode === "queue" ? "default" : "queue",
+                activeCanvasSurfaceId: null,
+            }
         case "open":
             if (action.mode === "canvas" && !canEnterCanvas(face)) return state
             // Preserve referential equality when nothing changes so consumers
             // don't re-render needlessly.
-            if (state.mode === action.mode) return state
-            return { mode: action.mode }
+            if (state.mode === action.mode && state.activeCanvasSurfaceId === null)
+                return state
+            return { mode: action.mode, activeCanvasSurfaceId: null }
+        case "openCanvasSurface":
+            if (!canEnterCanvas(face)) return state
+            if (
+                state.mode === "canvas" &&
+                state.activeCanvasSurfaceId === action.surfaceId
+            )
+                return state
+            return { mode: "canvas", activeCanvasSurfaceId: action.surfaceId }
         case "close":
-            if (state.mode === "default") return state
+            if (state.mode === "default" && state.activeCanvasSurfaceId === null)
+                return state
             return INITIAL_SURFACE_STATE
         default:
             return state

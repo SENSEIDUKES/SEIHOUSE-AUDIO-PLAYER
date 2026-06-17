@@ -73,6 +73,13 @@ export interface SEICanvasActionMenuProps {
      * `onOpenQueue` / `onActivateCanvas` / `onSelect` behavior unchanged.
      */
     onOpenWorkspace?: (route: WorkspaceRoute) => void
+    /**
+     * Activates a plugin SEI Canvas surface (e.g. "lyrics"). When provided, a
+     * node's `canvasSurfaceId` takes precedence over `workspaceRoute`/`actionId`,
+     * so a canvas plugin opens inside SEI Canvas. Omit it to fall back to the
+     * legacy routing behavior.
+     */
+    onActivateCanvasSurface?: (surfaceId: string) => void
     /** Accessible label for the trigger + menu. */
     ariaLabel?: string
     className?: string
@@ -114,6 +121,7 @@ export function SEICanvasActionMenu({
     onActivateCanvas,
     onSelect,
     onOpenWorkspace,
+    onActivateCanvasSurface,
     ariaLabel = "Canvas actions",
     className,
 }: SEICanvasActionMenuProps) {
@@ -202,6 +210,14 @@ export function SEICanvasActionMenu({
                 setPath((p) => [...p, node.id])
                 return
             }
+            // A canvas plugin surface opens inside SEI Canvas, taking precedence
+            // over a settings workspace so dual plugins (e.g. lyrics) land on the
+            // canvas. Falls through to the legacy routes if the host doesn't wire it.
+            if (node.canvasSurfaceId && onActivateCanvasSurface) {
+                onActivateCanvasSurface(node.canvasSurfaceId)
+                close()
+                return
+            }
             // A wired host routes leaf nodes to their workspace; the legacy
             // actions remain the fallback for hosts that don't (backward compat).
             if (node.workspaceRoute && onOpenWorkspace) {
@@ -221,7 +237,14 @@ export function SEICanvasActionMenu({
             }
             close()
         },
-        [close, onActivateCanvas, onOpenQueue, onOpenWorkspace, onSelect]
+        [
+            close,
+            onActivateCanvas,
+            onActivateCanvasSurface,
+            onOpenQueue,
+            onOpenWorkspace,
+            onSelect,
+        ]
     )
 
     const handleCenter = useCallback(() => {

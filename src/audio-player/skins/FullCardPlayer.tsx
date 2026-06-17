@@ -19,6 +19,7 @@ import { SEICanvasHost } from "../surfaces/SEICanvasHost"
 import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { PlayerSurfaceButtons } from "../surfaces/PlayerSurfaceButtons"
 import { QueueSurface } from "../surfaces/QueueSurface"
+import { CanvasSurfaceRenderer } from "../surfaces/CanvasSurfaceRenderer"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
 import type { WorkspaceRoute } from "../components/workspace/workspaceRoutes"
 import {
@@ -289,10 +290,18 @@ export function FullCardPlayer({
                     open={surface.isCanvasOpen || surface.isQueueOpen}
                     face="fullCard"
                     supported={surface.canvasSupported}
-                    activeSurfaceId={surface.mode === "default" ? undefined : surface.mode}
+                    activeSurfaceId={
+                        surface.activeCanvasSurfaceId ??
+                        (surface.mode === "default" ? undefined : surface.mode)
+                    }
                 >
                     {surface.isQueueOpen ? (
                         <QueueSurface />
+                    ) : surface.activeCanvasSurfaceId ? (
+                        <CanvasSurfaceRenderer
+                            surfaceId={surface.activeCanvasSurfaceId}
+                            lyrics={currentTrack?.lyrics}
+                        />
                     ) : (
                         <div className="ap-sei-canvas-placeholder">
                             <span className="ap-sei-canvas-placeholder__title">

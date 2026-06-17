@@ -30,6 +30,7 @@ import { usePlayerSurface } from "./surfaces/usePlayerSurface"
 import { PlayerSurfaceButtons } from "./surfaces/PlayerSurfaceButtons"
 import { SEICanvasHost } from "./surfaces/SEICanvasHost"
 import { QueueSurface } from "./surfaces/QueueSurface"
+import { CanvasSurfaceRenderer } from "./surfaces/CanvasSurfaceRenderer"
 import { VolumeControl } from "./components/VolumeControl"
 import { QueueDrawer } from "./components/QueueDrawer"
 import { SAPController } from "./components/SAPController"
@@ -1180,10 +1181,18 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                     open={surface.isCanvasOpen || surface.isQueueOpen}
                     face="portable"
                     supported={surface.canvasSupported}
-                    activeSurfaceId={surface.mode === "default" ? undefined : surface.mode}
+                    activeSurfaceId={
+                        surface.activeCanvasSurfaceId ??
+                        (surface.mode === "default" ? undefined : surface.mode)
+                    }
                 >
                     {surface.isQueueOpen ? (
                         <QueueSurface />
+                    ) : surface.activeCanvasSurfaceId ? (
+                        <CanvasSurfaceRenderer
+                            surfaceId={surface.activeCanvasSurfaceId}
+                            lyrics={currentTrack?.lyrics}
+                        />
                     ) : (
                         <div className="ap-sei-canvas-placeholder">
                             <span className="ap-sei-canvas-placeholder__title">
