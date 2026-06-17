@@ -431,7 +431,7 @@ export class PluginErrorBoundary {
         handlerResult.then(result => {
           if (result.action === 'disable_plugin') {
             this.isDisabled = true
-            this.handler.onPluginDisabled(this.pluginName, this.getFailureCount()).catch(() => {})
+            Promise.resolve(this.handler.onPluginDisabled(this.pluginName, this.getFailureCount())).catch(() => {})
           }
         }).catch(() => {})
 
@@ -493,7 +493,7 @@ export class PluginErrorBoundary {
     // Try to reset failure count if the handler supports it
     if (this.handler instanceof DefaultPluginErrorHandler) {
       this.handler.resetFailureCount(this.pluginName)
-    } else if (typeof (this.handler as Record<string, unknown>).resetFailureCount === 'function') {
+    } else if (typeof (this.handler as unknown as Record<string, unknown>).resetFailureCount === 'function') {
       ;(this.handler as unknown as { resetFailureCount(name: string): void }).resetFailureCount(this.pluginName)
     }
   }
@@ -505,7 +505,7 @@ export class PluginErrorBoundary {
     if (this.handler instanceof DefaultPluginErrorHandler) {
       return this.handler.getFailureCount(this.pluginName)
     }
-    if (typeof (this.handler as Record<string, unknown>).getFailureCount === 'function') {
+    if (typeof (this.handler as unknown as Record<string, unknown>).getFailureCount === 'function') {
       return (this.handler as unknown as { getFailureCount(name: string): number }).getFailureCount(this.pluginName)
     }
     return 0

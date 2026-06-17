@@ -328,7 +328,7 @@ class ExamplePluginWithDegradation implements AudioPlayerPlugin {
         this.boundary.executeSync('hook:onSeek', () => {
             this.handleSeek(position)
         }, {
-            fallback: GracefulDegradation.forSeek(position),
+            fallback: GracefulDegradation.forSeek(position) as any,
         })
     }
 
@@ -386,7 +386,7 @@ class ResilientPlugin implements AudioPlayerPlugin {
             this.sendHeartbeat(position)
         }, {
             severity: 'warning',
-            fallback: GracefulDegradation.forTimeUpdate(position),
+            fallback: GracefulDegradation.forTimeUpdate(position) as any,
         })
     }
 

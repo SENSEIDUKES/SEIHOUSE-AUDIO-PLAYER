@@ -14,6 +14,7 @@ import {
     PluginErrorInfo,
     isPluginError,
 } from "./PluginErrorBoundary"
+import { PluginDebugger, type PluginDebugInfo } from "./PluginDebugger"
 
 type HookCallable<K extends PluginHookName> = (
     this: AudioPlayerPlugin,
@@ -39,8 +40,9 @@ export interface PluginManagerOptions {
 export class PluginManager {
     private readonly plugins = new Map<string, RegisteredPlugin>()
     private context: PluginPlayerContext
-    private readonly errorBoundaryFactory: PluginErrorBoundaryFactory
+    private errorBoundaryFactory: PluginErrorBoundaryFactory
     private readonly defaultOptions: Required<PluginManagerOptions>
+    private readonly debugger: PluginDebugger
 
     constructor(context: PluginPlayerContext, options: PluginManagerOptions = {}) {
         this.context = context
@@ -49,6 +51,7 @@ export class PluginManager {
             maxFailuresBeforeDisable: options.maxFailuresBeforeDisable ?? 3,
         }
         this.errorBoundaryFactory = new PluginErrorBoundaryFactory(this.defaultOptions.errorHandler)
+        this.debugger = new PluginDebugger()
     }
 
     setContext(context: PluginPlayerContext) {
@@ -129,6 +132,20 @@ export class PluginManager {
     }
 
     /**
+     * Get health and debug status for all plugins
+     */
+    getDebugStatus(): PluginDebugInfo[] {
+        return [...this.plugins.values()].map(({ plugin, errorBoundary }) => ({
+            name: plugin.name,
+            initialized: true,
+            lastHookCalled: null,
+            lastHookTime: null,
+            errorCount: errorBoundary.getFailureCount(),
+            memoryUsage: this.debugger.getMemoryUsage()
+        }))
+    }
+
+    /**
      * Get the error boundary for a specific plugin
      */
     getErrorBoundary(pluginName: string): PluginErrorBoundary | undefined {
@@ -167,7 +184,7 @@ export class PluginManager {
             try {
                 const result = errorBoundary.executeSync(
                     `hook:${hook}`,
-                    () => (hookFn as HookCallable<K>).call(plugin, ...args),
+                    () => this.debugger.measure(plugin.name, hook, () => (hookFn as HookCallable<K>).call(plugin, ...args)),
                     {
                         recoverable: true,
                         severity: "warning",
@@ -197,7 +214,7 @@ export class PluginManager {
             
             const handled = await errorBoundary.execute(
                 `hook:${hook}`,
-                () => (hookFn as HookCallable<K>).call(plugin, ...args) === true,
+                () => this.debugger.measureAsync(plugin.name, hook, async () => (await (hookFn as HookCallable<K>).call(plugin, ...args)) === true),
                 {
                     recoverable: true,
                     severity: "warning",
@@ -263,7 +280,7 @@ export class PluginManager {
      * Safely retrieve the handler from a boundary. Uses the handler stored at
      * construction time so callers never need to access private members.
      */
-    private getBoundaryHandler(boundary: PluginErrorBoundary): PluginErrorHandler {
+    private getBoundaryHandler(_boundary: PluginErrorBoundary): PluginErrorHandler {
         // Every boundary created through the factory shares the factory's handler.
         // We can obtain it through the boundary's getFailureCount method for
         // DefaultPluginErrorHandler, or use the factory's stored reference.
