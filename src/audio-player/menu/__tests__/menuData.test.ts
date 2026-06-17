@@ -22,11 +22,13 @@ describe("buildMenuTree — derived plugin branches", () => {
         expect(ids).toEqual(["lyrics", "auto-theme", "waveform"])
     })
 
-    it("makes lyrics a canvas-activation node (not a settings route)", () => {
+    it("makes lyrics a canvas-activation node with a settings-route fallback", () => {
         const tree = buildMenuTree({ canvasSupported: true })
         const lyrics = findNode(tree, "lyrics")!
+        // Canvas is the primary action; the settings route remains as a fallback
+        // for hosts that don't wire onActivateCanvasSurface.
         expect(lyrics.canvasSurfaceId).toBe("lyrics")
-        expect(lyrics.workspaceRoute).toBeUndefined()
+        expect(lyrics.workspaceRoute).toBe("plugin-settings:lyrics")
     })
 
     it("disables canvas plugin nodes when the face has no SEI Canvas", () => {

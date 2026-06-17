@@ -125,9 +125,11 @@ const PLUGIN_MENU_ICONS: Record<string, ComponentType> = {
 
 /**
  * Convert a surface definition into a menu leaf. Canvas/dual plugins become
- * canvas-activation nodes (the primary action); settings plugins become
- * workspace-route nodes when their route is registered, else a disabled
- * placeholder. Headless plugins produce no node.
+ * canvas-activation nodes (the primary action) and keep their settings
+ * `workspaceRoute` as a fallback for hosts that don't wire
+ * `onActivateCanvasSurface`. Settings-only plugins become workspace-route nodes
+ * when their route is registered, else a disabled placeholder. Headless plugins
+ * produce no node.
  */
 function pluginSurfaceNode(
     def: PluginSurfaceDefinition,
@@ -137,6 +139,9 @@ function pluginSurfaceNode(
     if (isHeadlessPlugin(def)) return null
     const icon = PLUGIN_MENU_ICONS[def.pluginId] ?? PluginIcon
 
+    const route = getPluginSettingsRoute(def)
+    const workspaceRoute = route && isWorkspaceRoute(route) ? route : undefined
+
     const surfaceId = getPluginCanvasSurfaceId(def)
     if (surfaceId) {
         const state: MenuItemState = !canvasSupported
@@ -144,16 +149,24 @@ function pluginSurfaceNode(
             : activeCanvasSurfaceId === surfaceId
               ? "active"
               : "available"
-        return { id: def.pluginId, label: def.label, icon, state, canvasSurfaceId: surfaceId }
-    }
-
-    const route = getPluginSettingsRoute(def)
-    if (route && isWorkspaceRoute(route)) {
+        // canvasSurfaceId is the primary action; workspaceRoute is the fallback
+        // (SEICanvasActionMenu prefers canvas activation when the host wires it).
         return {
             id: def.pluginId,
             label: def.label,
             icon,
-            workspaceRoute: route,
+            state,
+            canvasSurfaceId: surfaceId,
+            workspaceRoute,
+        }
+    }
+
+    if (workspaceRoute) {
+        return {
+            id: def.pluginId,
+            label: def.label,
+            icon,
+            workspaceRoute,
         }
     }
     // Settings plugin without a registered route: show it but keep it inert.
