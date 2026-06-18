@@ -393,6 +393,9 @@ export type {
     SessionEngine,
     RepeatMode,
     AudioSessionProviderProps,
+    DistanceModelType,
+    SpatialAudioOptions,
+    SpatialAudioState,
 } from "./types"
 export type { FullCardPlayerProps } from "./skins/FullCardPlayer"
 export type { VaultRowPlayerProps } from "./skins/VaultRowPlayer"
