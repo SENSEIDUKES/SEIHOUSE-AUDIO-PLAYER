@@ -1,5 +1,6 @@
 import type { AnyVisualComponentDefinition } from "./types"
 import { lyricDisplayDefinition } from "./components/LyricDisplay"
+import { IMPORTED_VISUAL_SKINS } from "./importedSkins.generated"
 
 /**
  * The built-in visual components SAP ships with. Registered by
@@ -11,7 +12,11 @@ import { lyricDisplayDefinition } from "./components/LyricDisplay"
  * To add the next Workshop-Light component: build it under `components/`, scope
  * its CSS, declare a definition, and append it here (or register it from a host
  * app via `registerVisualComponent`). No player-core edits required.
+ *
+ * Imported skins (from `npm run skin:import`) are spread after the built-ins so
+ * LyricDisplay keeps its default position.
  */
 export const BUILTIN_VISUAL_COMPONENTS: readonly AnyVisualComponentDefinition[] = [
     lyricDisplayDefinition,
+    ...IMPORTED_VISUAL_SKINS,
 ]

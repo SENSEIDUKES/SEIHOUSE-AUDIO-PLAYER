@@ -1,0 +1,46 @@
+/* Sample skin CSS for testing the scoping transform. */
+
+:root {
+    --sample-fg: #ffffff;
+    --sample-bg: #1a1a2e;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--sample-bg);
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    gap: 16px;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.ring {
+    width: 64px;
+    height: 64px;
+    border: 3px solid var(--sample-fg);
+    border-radius: 50%;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 16px;
+    }
+}

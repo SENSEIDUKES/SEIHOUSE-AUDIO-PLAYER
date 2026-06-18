@@ -9,6 +9,8 @@ import { PlaybackAutomixWorkspace } from "./PlaybackAutomixWorkspace"
 import { AgentQueueDirectorWorkspace } from "./AgentQueueDirectorWorkspace"
 import { ControllerPanelRenderer } from "../../visual-slots/ControllerPanelRenderer"
 import { LYRIC_DISPLAY_ID } from "../../visual-slots/components/LyricDisplay"
+import { VisualSlotPicker } from "../../visual-slots/VisualSlotPicker"
+import { useVisualSlots } from "../../visual-slots/VisualSlotsContext"
 
 /* The body of the SAP Controller when it is in a focused-workspace route rather
    than the legacy "options" sheet. SAPController still owns the portal, backdrop,
@@ -50,6 +52,35 @@ function titleForRoute(route: WorkspaceRoute): string {
 }
 
 /**
+ * The visual:canvas workspace content: a slot picker at the top and the active
+ * visual's settings panel below it. Extracted as its own component because it
+ * needs hooks (useVisualSlots) and `contentForRoute` is a plain function.
+ */
+function VisualCanvasWorkspace({ lyrics }: { lyrics?: string }) {
+    const { getActive } = useVisualSlots()
+    const activeId = getActive("seiCanvas")
+
+    return (
+        <>
+            <VisualSlotPicker slot="seiCanvas" />
+            {activeId ? (
+                <ControllerPanelRenderer
+                    componentId={activeId}
+                    lyrics={lyrics}
+                />
+            ) : (
+                <div className="sap-ctl__workspace-empty">
+                    <p className="sap-ctl__workspace-lead">No Visual</p>
+                    <p className="sap-ctl__workspace-sub">
+                        Select a visual above to configure it.
+                    </p>
+                </div>
+            )}
+        </>
+    )
+}
+
+/**
  * Pick the placeholder workspace surface for a route. Switches on the full route
  * string for known routes (parity with `titleForRoute`) so a future `library:*`
  * or `playback:*` route can't silently fall through to the wrong surface; the
@@ -77,14 +108,7 @@ function contentForRoute(route: WorkspaceRoute, lyrics?: string): ReactNode {
         case "agent:queue-director":
             return <AgentQueueDirectorWorkspace />
         case "visual:canvas":
-            return (
-                <div className="sap-ctl__workspace-empty">
-                    <p className="sap-ctl__workspace-lead">Canvas</p>
-                    <p className="sap-ctl__workspace-sub">
-                        Visual canvas options will appear here.
-                    </p>
-                </div>
-            )
+            return <VisualCanvasWorkspace lyrics={lyrics} />
         default: {
             // Dynamic plugin settings: render the generic stub keyed by id.
             const parsed = parseWorkspaceRoute(route)

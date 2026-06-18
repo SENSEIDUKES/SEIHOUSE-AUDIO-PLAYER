@@ -176,6 +176,7 @@ export {
     lyricDisplayDefinition,
     lyricDefaultSettings,
     LYRIC_DISPLAY_ID,
+    VisualSlotPicker,
 } from "./visual-slots"
 export type {
     VisualSlot,
@@ -190,6 +191,7 @@ export type {
     ScrubberCanvasRendererProps,
     ControllerPanelRendererProps,
     LyricSettings,
+    VisualSlotPickerProps,
 } from "./visual-slots"
 
 // Headless adapter layer: Downshift-style prop getters and utilities over an

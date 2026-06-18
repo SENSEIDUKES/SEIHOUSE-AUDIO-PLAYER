@@ -44,3 +44,6 @@ export {
     LYRIC_DISPLAY_ID,
 } from "./components/LyricDisplay"
 export type { LyricSettings } from "./components/LyricDisplay"
+
+export { VisualSlotPicker } from "./VisualSlotPicker"
+export type { VisualSlotPickerProps } from "./VisualSlotPicker"
