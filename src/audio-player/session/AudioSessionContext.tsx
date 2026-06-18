@@ -310,6 +310,14 @@ export function AudioSessionProvider({
         pluginManager.trigger("onTrackLoad", currentTrack)
     }, [pluginManager, sourceKey, currentTrack])
 
+    // Warm the next queue item as soon as the active track starts playing.
+    // WebAudio backends decode into the shared LRU through their waterfall path;
+    // HTML5 backends reuse a pooled detached media element for passive preload.
+    useEffect(() => {
+        if (!engine.isPlaying || repeatMode === "one" || !pluginNextTrack) return
+        engine.preload(pluginNextTrack)
+    }, [engine, engine.isPlaying, pluginNextTrack, repeatMode, sourceKey])
+
     const previousPluginPlayingRef = useRef(engine.isPlaying)
     useEffect(() => {
         if (previousPluginPlayingRef.current === engine.isPlaying) return

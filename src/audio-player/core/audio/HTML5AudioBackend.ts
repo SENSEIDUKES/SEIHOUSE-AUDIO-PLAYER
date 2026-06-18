@@ -7,6 +7,7 @@ import type {
     AudioBackendInfo,
     AudioBackendKind,
 } from "./AudioBackend"
+import { sharedHTML5AudioPool } from "./audioCaches"
 
 export const HTML5_CAPABILITIES = {
     streaming: true,
@@ -176,7 +177,7 @@ export class HTML5AudioBackend implements AudioBackend {
     preload(url: string): void {
         let el = this.preloadAudio
         if (!el) {
-            el = new Audio()
+            el = sharedHTML5AudioPool.acquire()
             el.preload = "auto"
             this.preloadAudio = el
         }
@@ -188,7 +189,7 @@ export class HTML5AudioBackend implements AudioBackend {
 
     releasePreload(): void {
         if (this.preloadAudio) {
-            this.preloadAudio.src = ""
+            sharedHTML5AudioPool.release(this.preloadAudio)
             this.preloadAudio = null
         }
     }
