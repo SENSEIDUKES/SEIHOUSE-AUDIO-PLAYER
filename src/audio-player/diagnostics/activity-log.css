@@ -12,6 +12,7 @@
 .al-event { border-radius: 8px; }
 .al-event--expanded, .al-event:hover { background: rgba(255,255,255,.06); }
 .al-event__summary { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 6px 10px; border: none; background: transparent; color: inherit; font-family: inherit; font-size: 12px; text-align: left; cursor: pointer; border-radius: 8px; }
+.al-event__summary--static { cursor: default; }
 .al-event__time { flex-shrink: 0; font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .45; min-width: 52px; }
 .al-event__status { flex-shrink: 0; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 5px; min-width: 38px; text-align: center; }
 .al-event__status--info { background: rgba(100,180,255,.18); color: #6cb4ff; }

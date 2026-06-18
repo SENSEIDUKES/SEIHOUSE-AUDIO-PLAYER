@@ -106,7 +106,7 @@ function formatTimestamp(ts: number): string {
 }
 
 function formatLine(event: ActivityEvent): string {
-    let line = `[${formatTimestamp(event.timestamp)}] ${event.status.padEnd(5)} ${event.area.padEnd(8)} ${event.message}`
+    let line = `[${formatTimestamp(event.timestamp)}] ${event.status.padEnd(7)} ${event.area.padEnd(8)} ${event.message}`
     if (event.error) line += ` | error: ${event.error}`
     if (event.details) {
         try {

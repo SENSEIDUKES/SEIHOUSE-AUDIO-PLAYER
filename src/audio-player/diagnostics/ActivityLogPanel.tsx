@@ -35,6 +35,7 @@ const STATUS_CLASS: Record<ActivityStatus, string> = {
 export function ActivityLogPanel() {
     const log = useActivityLog()
     const listRef = useRef<HTMLDivElement | null>(null)
+    const copyResetTimeoutRef = useRef<number | null>(null)
     const [filters, setFilters] = useState<Filters>({
         status: "all",
         area: "all",
@@ -45,6 +46,14 @@ export function ActivityLogPanel() {
     useEffect(() => {
         listRef.current?.scrollTo({ top: 0 })
     }, [filters])
+
+    useEffect(() => {
+        return () => {
+            if (copyResetTimeoutRef.current !== null) {
+                window.clearTimeout(copyResetTimeoutRef.current)
+            }
+        }
+    }, [])
 
     const filtered = useMemo(() => {
         let result = [...log.events].reverse() as readonly ActivityEvent[]
@@ -80,7 +89,13 @@ export function ActivityLogPanel() {
     const handleCopy = useCallback(() => {
         navigator.clipboard?.writeText(log.exportText()).then(() => {
             setCopied(true)
-            window.setTimeout(() => setCopied(false), 2000)
+            if (copyResetTimeoutRef.current !== null) {
+                window.clearTimeout(copyResetTimeoutRef.current)
+            }
+            copyResetTimeoutRef.current = window.setTimeout(() => {
+                setCopied(false)
+                copyResetTimeoutRef.current = null
+            }, 2000)
         })
     }, [log])
 
@@ -134,16 +149,35 @@ export function ActivityLogPanel() {
 function ActivityEventRow({ event }: { event: ActivityEvent }) {
     const [expanded, setExpanded] = useState(false)
     const hasDetails = event.details != null || event.error != null || event.message.length > 120
+    const summaryContent = (
+        <>
+            <span className="al-event__time">{formatEventTime(event.timestamp)}</span>
+            <span className={`al-event__status ${STATUS_CLASS[event.status]}`}>{event.status}</span>
+            <span className="al-event__area">{AREA_LABELS[event.area]}</span>
+            <span className="al-event__msg">{event.message}</span>
+            <span className="al-event__chevron">{expanded ? "▾" : "▸"}</span>
+        </>
+    )
 
     return (
         <article className={`al-event${expanded ? " al-event--expanded" : ""}`}>
-            <button type="button" className="al-event__summary" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
-                <span className="al-event__time">{formatEventTime(event.timestamp)}</span>
-                <span className={`al-event__status ${STATUS_CLASS[event.status]}`}>{event.status}</span>
-                <span className="al-event__area">{AREA_LABELS[event.area]}</span>
-                <span className="al-event__msg">{event.message}</span>
-                {hasDetails && <span className="al-event__chevron">{expanded ? "▾" : "▸"}</span>}
-            </button>
+            {hasDetails ? (
+                <button
+                    type="button"
+                    className="al-event__summary"
+                    onClick={() => setExpanded((value) => !value)}
+                    aria-expanded={expanded}
+                >
+                    {summaryContent}
+                </button>
+            ) : (
+                <div className="al-event__summary al-event__summary--static">
+                    <span className="al-event__time">{formatEventTime(event.timestamp)}</span>
+                    <span className={`al-event__status ${STATUS_CLASS[event.status]}`}>{event.status}</span>
+                    <span className="al-event__area">{AREA_LABELS[event.area]}</span>
+                    <span className="al-event__msg">{event.message}</span>
+                </div>
+            )}
             {expanded && hasDetails && (
                 <div className="al-event__details">
                     {event.error && <DetailRow label="Error" value={event.error} error />}

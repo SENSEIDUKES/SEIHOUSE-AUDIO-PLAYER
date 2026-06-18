@@ -47,7 +47,10 @@ export function useActivityLogRecording({
     }, [engine.isPlaying, log, currentTrack, trackLabel])
 
     useEffect(() => {
-        if (!currentTrack) return
+        if (!currentTrack) {
+            prevTrackKeyRef.current = null
+            return
+        }
         const key = currentTrack.id ?? `${currentTrack.title}:${currentTrack.artist}`
         if (prevTrackKeyRef.current === key) return
         prevTrackKeyRef.current = key
