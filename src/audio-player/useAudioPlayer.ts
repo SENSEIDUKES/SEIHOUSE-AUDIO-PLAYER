@@ -10,6 +10,7 @@ import type { AudioBackend } from "./core/audio/AudioBackend"
 import { createAudioBackend } from "./core/audio/AudioBackendFactory"
 import { shouldEnterBuffering } from "./utils/buffering"
 import { getTrackSources } from "./utils/sources"
+import { useLocalStorage, savePlaybackState } from "./utils/storage"
 
 type ActiveSourceState = {
     sourceKey: string
@@ -135,7 +136,7 @@ export function useAudioPlayer(
     const animationFrameRef = useRef<number | null>(null)
     const fadeFrameRef = useRef<number | null>(null)
     const isFirstLoadRef = useRef(true)
-    const previousVolumeRef = useRef(1)
+    const previousVolumeRef = useRef(volume)
     const pendingSeekRef = useRef<number | null>(null)
     const onEndedRef = useRef(onEnded)
     onEndedRef.current = onEnded
@@ -170,7 +171,7 @@ export function useAudioPlayer(
     const [duration, setDuration] = useState(0)
     const [buffered, setBuffered] = useState(0)
     const [bufferedRanges, setBufferedRanges] = useState<BufferedRange[]>([])
-    const [volume, setVolumeState] = useState(1)
+    const [volume, setVolumeState] = useLocalStorage("ap-volume", 1)
     const [isMuted, setIsMuted] = useState(false)
     const [isSeeking, setIsSeekingState] = useState(false)
     const [isBuffering, setIsBuffering] = useState(false)
@@ -742,6 +743,24 @@ export function useAudioPlayer(
             backend.removeEventListener("loadstart", handleLoadStart)
         }
     }, [stopLoop, tryFallbackSource])
+
+    // Periodic playback state persistence
+    useEffect(() => {
+        if (!isPlaying || !hasAudio || !sourceKeyRef.current) return
+
+        const interval = setInterval(() => {
+            if (currentTimeRef.current > 0) {
+                // trackId we store will be derived from sourceKey
+                // we'll store sourceKey for robustness
+                savePlaybackState({
+                    trackId: sourceKeyRef.current,
+                    currentTime: currentTimeRef.current
+                })
+            }
+        }, 30000)
+
+        return () => clearInterval(interval)
+    }, [isPlaying, hasAudio])
 
     // Reset + load whenever the source changes. Continues playing across track
     // changes; the initial load only plays when autoPlay is requested.

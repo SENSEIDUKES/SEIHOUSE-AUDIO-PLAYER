@@ -29,6 +29,7 @@ import { usePluginManager } from "../core/plugins/usePluginManager"
 import { usePluginSoundLayer } from "../core/audio/usePluginSoundLayer"
 import { trackKey } from "../utils/trackKey"
 import { getTrackSources, getPrimaryTrackSource, trackSourcesSignature } from "../utils/sources"
+import { useLocalStorage } from "../utils/storage"
 
 const AudioSessionContext = createContext<SessionEngine | null>(null)
 const EMPTY_PLUGINS: readonly AudioPlayerPlugin[] = []
@@ -76,8 +77,8 @@ export function AudioSessionProvider({
             ? Math.min(Math.max(initialIndex, 0), initialQueue.length - 1)
             : -1
     )
-    const [shuffle, setShuffle] = useState(initialShuffle)
-    const [repeatMode, setRepeatMode] = useState<RepeatMode>(initialRepeat)
+    const [shuffle, setShuffle] = useLocalStorage("ap-shuffle", initialShuffle)
+    const [repeatMode, setRepeatMode] = useLocalStorage<RepeatMode>("ap-repeat-mode", initialRepeat)
     const [automix, setAutomix] = useState(initialAutomix)
 
     // Playback order (queue indices). Computed during render so canNext /

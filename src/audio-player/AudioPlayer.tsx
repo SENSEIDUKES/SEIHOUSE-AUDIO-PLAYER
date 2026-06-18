@@ -46,6 +46,7 @@ import {
 } from "./utils/formatMetadata"
 import { defaultShowVolume } from "./utils/device"
 import { FixedSizeList } from "react-window"
+import { useLocalStorage, loadPlaybackState, clearPlaybackState } from "./utils/storage"
 
 const TrackRow = memo(({ index, style, data }: { index: number; style: React.CSSProperties; data: any }) => {
     const { localQueue, trackIndex, goToTrack, isPlaying } = data
@@ -248,11 +249,16 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     const [announcement, setAnnouncement] = useState("")
     const [controllerOpen, setControllerOpen] = useState(false)
     const [localAutoPlay, setLocalAutoPlay] = useState(autoPlay)
-    const [localShuffle, setLocalShuffle] = useState(shuffle)
-    const [localRepeatMode, setLocalRepeatMode] = useState<RepeatMode>(
+    const [localShuffle, setLocalShuffle] = useLocalStorage("ap-shuffle", shuffle)
+    const [localRepeatMode, setLocalRepeatMode] = useLocalStorage<RepeatMode>(
+        "ap-repeat-mode",
         repeatModeProp ?? (loop ? "one" : "off")
     )
     const [localAutomix, setLocalAutomix] = useState(automix)
+    
+    // Theme persistence - stores a basic theme preference if users integrate it later
+    const [themePref, setThemePref] = useLocalStorage("ap-theme", "auto")
+
     // Editable local queue (copy of tracks prop, updated by reorder/remove).
     const [localQueue, setLocalQueue] = useState<Track[]>(tracks)
     const [queueOpen, setQueueOpen] = useState(false)
@@ -428,6 +434,24 @@ function AudioPlayerInner(props: AudioPlayerProps) {
     // pause/ended/error/source-reset. So the spinner renders straight from it —
     // no idle/paused spinner, but the initial pending-play load still shows one.
     const showPlaySpinner = isBuffering
+
+    const [resumePromptTime, setResumePromptTime] = useState(0)
+
+    useEffect(() => {
+        const state = loadPlaybackState()
+        if (state && state.trackId === sourceKey && state.currentTime > 3) {
+            setResumePromptTime(state.currentTime)
+        } else {
+            setResumePromptTime(0)
+        }
+    }, [sourceKey])
+
+    // Clear resume prompt if user seeks manually or track plays past it
+    useEffect(() => {
+        if (resumePromptTime > 0 && Math.abs(currentTime - resumePromptTime) > 2 && isPlaying) {
+            setResumePromptTime(0)
+        }
+    }, [currentTime, resumePromptTime, isPlaying])
 
     const goToTrack = useCallback(
         (next: number | null) => {
@@ -988,6 +1012,38 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                         >
                             Play
                         </button>
+                    </div>
+                )}
+
+                {resumePromptTime > 0 && hasAudio && !hasError && (
+                    <div className="ap-banner ap-banner--info ap-banner--col ap-anim-in" role="status">
+                        <div className="ap-banner__row">
+                            <InfoIcon />
+                            <span>Resume from {formatTime(resumePromptTime)}?</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                type="button"
+                                className="ap-retry-btn"
+                                onClick={() => {
+                                    seekWithPlugins(resumePromptTime)
+                                    setResumePromptTime(0)
+                                }}
+                            >
+                                Resume
+                            </button>
+                            <button
+                                type="button"
+                                className="ap-btn ap-btn--ghost ap-tap"
+                                onClick={() => {
+                                    setResumePromptTime(0)
+                                    clearPlaybackState()
+                                }}
+                                style={{ fontSize: '13px', padding: '0 12px' }}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
                     </div>
                 )}
 
