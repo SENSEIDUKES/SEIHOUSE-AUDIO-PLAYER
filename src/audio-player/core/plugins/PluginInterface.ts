@@ -1,4 +1,31 @@
 import type { AudioPlayerEngine, RepeatMode, Track } from "../../types"
+import type {
+    AudioSpriteInstanceId,
+    AudioSpriteManifest,
+    AudioSpritePlayOptions,
+} from "../audio/AudioSpriteEngine"
+
+
+/** Restricted sound-effects surface for Vault Radio and plugin-layer sounds. */
+export interface PluginSoundLayer {
+    /** Load one sprite pack whose manifest maps names to offset/duration clips. */
+    loadSpritePack: (manifest: AudioSpriteManifest) => Promise<void>
+    /** Play a named clip and return its active instance id, or null when unavailable. */
+    playSprite: (
+        clipName: string,
+        options?: AudioSpritePlayOptions
+    ) => AudioSpriteInstanceId | null
+    /** Stop one active sprite instance by id. */
+    stopSprite: (id: AudioSpriteInstanceId) => void
+    /** Fade one active sprite instance to a target volume over the given duration. */
+    fadeSprite: (
+        id: AudioSpriteInstanceId,
+        toVolume: number,
+        durationMs: number
+    ) => void
+    /** Stop every active plugin/Vault Radio sprite instance. */
+    stopAllSprites: () => void
+}
 
 /** Playback/control surface exposed to plugins without coupling them to React. */
 export interface PluginPlayerContext {
@@ -19,6 +46,12 @@ export interface PluginPlayerContext {
     /** Optional queue navigation helpers for shortcut/control plugins. */
     next?: () => void
     previous?: () => void
+    /**
+     * Restricted SAP-native audio sprite layer for Vault Radio and plugin-only
+     * sounds. This is not a primary-track playback engine and intentionally
+     * exposes no raw Web Audio internals.
+     */
+    sounds?: PluginSoundLayer
     /** Optional playlist/session metadata for analytics and advanced plugins. */
     getQueue?: () => Track[]
     getCurrentIndex?: () => number

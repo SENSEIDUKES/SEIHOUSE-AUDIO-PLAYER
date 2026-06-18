@@ -23,6 +23,7 @@ import {
 } from "./plugins/automixIntegration"
 import { useMediaSessionObserver } from "./headless/useMediaSessionObserver"
 import { usePluginManager } from "./core/plugins/usePluginManager"
+import { usePluginSoundLayer } from "./core/audio/usePluginSoundLayer"
 import { WaveformAdapter } from "./components/WaveformAdapter"
 import { ScrubberCanvasHost } from "./surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "./surfaces/faceCapabilities"
@@ -511,6 +512,8 @@ function AudioPlayerInner(props: AudioPlayerProps) {
         [externalPlugins]
     )
 
+    const pluginSoundLayer = usePluginSoundLayer()
+
     const pluginContextStateRef = useRef({
         engine,
         currentTrack: currentTrack as Track | null,
@@ -556,8 +559,9 @@ function AudioPlayerInner(props: AudioPlayerProps) {
             getCurrentIndex: () => pluginContextStateRef.current.trackIndex,
             getRepeatMode: () => pluginContextStateRef.current.repeatMode,
             getShuffle: () => pluginContextStateRef.current.shuffle,
+            sounds: pluginSoundLayer,
         }),
-        []
+        [pluginSoundLayer]
     )
     const pluginManager = usePluginManager(allPlugins, pluginContext)
     const hasKeyboardShortcutPlugin = externalPlugins.some(

@@ -27,6 +27,7 @@ export type {
 export { createAudioBackend } from "./core/audio/AudioBackendFactory"
 export { HTML5AudioBackend } from "./core/audio/HTML5AudioBackend"
 export { WebAudioBackend } from "./core/audio/WebAudioBackend"
+export { AudioSpriteEngine, createAudioSpriteEngine } from "./core/audio/AudioSpriteEngine"
 export {
     AutomixPlugin,
     createAutomixPlugin,
@@ -294,7 +295,15 @@ export type {
     PluginHookName,
     PluginHookResult,
     PluginPlayerContext,
+    PluginSoundLayer,
 } from "./core/plugins/PluginInterface"
+export type {
+    AudioSpriteClipDefinition,
+    AudioSpriteInstanceId,
+    AudioSpriteInstanceInfo,
+    AudioSpriteManifest,
+    AudioSpritePlayOptions,
+} from "./core/audio/AudioSpriteEngine"
 export type {
     AudioBackend,
     AudioBackendKind,

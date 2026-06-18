@@ -26,6 +26,7 @@ import {
     withInternalAutomix,
 } from "../plugins/automixIntegration"
 import { usePluginManager } from "../core/plugins/usePluginManager"
+import { usePluginSoundLayer } from "../core/audio/usePluginSoundLayer"
 import { trackKey } from "../utils/trackKey"
 import { getTrackSources, getPrimaryTrackSource, trackSourcesSignature } from "../utils/sources"
 
@@ -216,6 +217,8 @@ export function AudioSessionProvider({
         [externalPlugins]
     )
 
+    const pluginSoundLayer = usePluginSoundLayer()
+
     const pluginContextStateRef = useRef({
         engine,
         currentTrack,
@@ -245,8 +248,9 @@ export function AudioSessionProvider({
             getCurrentIndex: () => pluginContextStateRef.current.currentIndex,
             getRepeatMode: () => pluginContextStateRef.current.repeatMode,
             getShuffle: () => pluginContextStateRef.current.shuffle,
+            sounds: pluginSoundLayer,
         }),
-        []
+        [pluginSoundLayer]
     )
     const pluginManager = usePluginManager(allPlugins, pluginContext)
 
