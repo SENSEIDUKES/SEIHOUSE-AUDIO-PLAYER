@@ -371,6 +371,10 @@ export function useAudioPlayer(
 
     const toggle = useCallback(() => {
         if (!hasAudio) return
+        // Haptic feedback for play/pause toggle on touch devices that support it.
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+            navigator.vibrate(10)
+        }
         if (isPlayingRef.current) pause()
         else play(true)
     }, [hasAudio, pause, play])
