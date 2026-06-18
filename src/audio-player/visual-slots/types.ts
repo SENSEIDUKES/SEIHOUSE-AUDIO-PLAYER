@@ -15,10 +15,28 @@ import type { ComponentType } from "react"
  */
 export type VisualSlot = "seiCanvas" | "scrubberCanvas" | "controllerPanel"
 
+/**
+ * Live playback context handed to a visual component through props. Visual
+ * components are standalone (Workshop-Light style) and must not reach into the
+ * global audio session directly — the host renderer supplies whatever playback
+ * data it has (from the session, or a portable player's own engine), so the same
+ * component works in every player regardless of how playback is wired.
+ */
+export interface VisualPlaybackContext {
+    /** Current playback position, in seconds. */
+    currentTime: number
+    /** Total track duration, in seconds. */
+    duration: number
+    /** The active track's raw lyrics blob, if any. */
+    lyrics?: string | null
+}
+
 /** Props passed into an active visual component's main render. */
 export interface VisualComponentProps<S = Record<string, unknown>> {
     /** The live, editable settings for this component (from defaultSettings). */
     settings: S
+    /** Live playback context supplied by the host renderer (optional). */
+    playback?: VisualPlaybackContext
 }
 
 /**

@@ -4,6 +4,7 @@
 
 export type {
     VisualSlot,
+    VisualPlaybackContext,
     VisualComponentProps,
     VisualSettingsPanelProps,
     VisualComponentDefinition,
@@ -28,6 +29,7 @@ export type {
 } from "./VisualSlotsContext"
 
 export { SEICanvasRenderer } from "./SEICanvasRenderer"
+export type { SEICanvasRendererProps } from "./SEICanvasRenderer"
 export { ScrubberCanvasRenderer } from "./ScrubberCanvasRenderer"
 export type { ScrubberCanvasRendererProps } from "./ScrubberCanvasRenderer"
 export { ControllerPanelRenderer } from "./ControllerPanelRenderer"

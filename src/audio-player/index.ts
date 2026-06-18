@@ -178,12 +178,14 @@ export {
 } from "./visual-slots"
 export type {
     VisualSlot,
+    VisualPlaybackContext,
     VisualComponentProps,
     VisualSettingsPanelProps,
     VisualComponentDefinition,
     AnyVisualComponentDefinition,
     VisualSlotsContextValue,
     VisualSlotsProviderProps,
+    SEICanvasRendererProps,
     ScrubberCanvasRendererProps,
     ControllerPanelRendererProps,
     LyricSettings,

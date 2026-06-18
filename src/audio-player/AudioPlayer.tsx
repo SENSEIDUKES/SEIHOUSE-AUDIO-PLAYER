@@ -1195,7 +1195,11 @@ function AudioPlayerInner(props: AudioPlayerProps) {
                     {surface.isQueueOpen ? (
                         <QueueSurface />
                     ) : (
-                        <SEICanvasRenderer />
+                        <SEICanvasRenderer
+                            currentTime={currentTime}
+                            duration={duration}
+                            lyrics={currentTrack?.lyrics}
+                        />
                     )}
                 </SEICanvasHost>
 

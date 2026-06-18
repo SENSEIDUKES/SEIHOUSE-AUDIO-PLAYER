@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef } from "react"
-import { useAudioSession } from "../../session/AudioSessionContext"
 import type {
     VisualComponentDefinition,
     VisualComponentProps,
@@ -57,13 +56,20 @@ function toLines(lyrics: string | undefined | null): string[] {
 }
 
 /**
- * The mounted SEI Canvas visual. With no timed-lyric metadata available, the
- * "active" line is estimated from playback progress so the highlight still moves
- * with the track — a real, settings-driven visual rather than a placeholder.
+ * The mounted SEI Canvas visual. Playback context (lyrics, position, duration)
+ * arrives via props from the host renderer rather than the global audio session,
+ * so the component works in every player — including the portable one that has no
+ * `AudioSessionProvider`. With no timed-lyric metadata available, the "active"
+ * line is estimated from playback progress so the highlight still moves with the
+ * track — a real, settings-driven visual rather than a placeholder.
  */
-export function LyricDisplay({ settings }: VisualComponentProps<LyricSettings>) {
-    const { currentTrack, currentTime, duration } = useAudioSession()
-    const lines = useMemo(() => toLines(currentTrack?.lyrics), [currentTrack?.lyrics])
+export function LyricDisplay({
+    settings,
+    playback,
+}: VisualComponentProps<LyricSettings>) {
+    const currentTime = playback?.currentTime ?? 0
+    const duration = playback?.duration ?? 0
+    const lines = useMemo(() => toLines(playback?.lyrics), [playback?.lyrics])
     const containerRef = useRef<HTMLDivElement>(null)
 
     const ratio = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0

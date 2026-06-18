@@ -298,7 +298,11 @@ export function FullCardPlayer({
                     {surface.isQueueOpen ? (
                         <QueueSurface />
                     ) : (
-                        <SEICanvasRenderer />
+                        <SEICanvasRenderer
+                            currentTime={currentTime}
+                            duration={duration}
+                            lyrics={currentTrack?.lyrics}
+                        />
                     )}
                 </SEICanvasHost>
             </div>
