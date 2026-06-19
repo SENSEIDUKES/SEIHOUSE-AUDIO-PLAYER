@@ -6,6 +6,7 @@ import { QueueDrawer } from "../components/QueueDrawer"
 import { WaveformAdapter } from "../components/WaveformAdapter"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
+import { HoldSkipButton } from "../components/HoldSkipButton"
 import { useShareTrack } from "../components/useShareTrack"
 import { ExplicitBadge } from "../components/TrackMetadata"
 import { formatTime } from "../utils/formatTime"
@@ -18,9 +19,7 @@ import { ScrubberCanvasHost } from "../surfaces/ScrubberCanvasHost"
 import { getScrubberDensity } from "../surfaces/faceCapabilities"
 import { buildThemeVars } from "./themeVars"
 import {
-    Back10Icon,
     DotsIcon,
-    Fwd10Icon,
     NextIcon,
     PauseIcon,
     PlayIcon,
@@ -156,24 +155,18 @@ export function StickyBottomPlayer({
 
                 <div className="ap-sb__center">
                     <div className="ap-sb__controls">
-                        <button
-                            type="button"
+                        <HoldSkipButton
+                            direction="previous"
                             className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                            onClick={s.previous}
-                            disabled={!s.canPrevious}
-                            aria-label="Previous track"
+                            disabled={!s.hasAudio}
+                            skipDisabled={!s.canPrevious}
+                            seekLabel="Skip backward 10 seconds"
+                            skipLabel="Previous track"
+                            onSeek={() => s.seekBy(-10)}
+                            onSkip={s.previous}
                         >
                             <PrevIcon />
-                        </button>
-                        <button
-                            type="button"
-                            className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                            onClick={() => s.seekBy(-10)}
-                            disabled={!s.hasAudio}
-                            aria-label="Skip backward 10 seconds"
-                        >
-                            <Back10Icon />
-                        </button>
+                        </HoldSkipButton>
                         <button
                             type="button"
                             className={`ap-btn ap-btn--play ap-sb__play ap-tap${isPlaying ? " ap-btn--play-active" : ""}`}
@@ -183,24 +176,18 @@ export function StickyBottomPlayer({
                         >
                             {showPlaySpinner ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
                         </button>
-                        <button
-                            type="button"
+                        <HoldSkipButton
+                            direction="next"
                             className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                            onClick={() => s.seekBy(10)}
                             disabled={!s.hasAudio}
-                            aria-label="Skip forward 10 seconds"
-                        >
-                            <Fwd10Icon />
-                        </button>
-                        <button
-                            type="button"
-                            className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                            onClick={s.next}
-                            disabled={!s.canNext}
-                            aria-label="Next track"
+                            skipDisabled={!s.canNext}
+                            seekLabel="Skip forward 10 seconds"
+                            skipLabel="Next track"
+                            onSeek={() => s.seekBy(10)}
+                            onSkip={s.next}
                         >
                             <NextIcon />
-                        </button>
+                        </HoldSkipButton>
                         <button
                             type="button"
                             className="ap-icon-btn ap-tap"

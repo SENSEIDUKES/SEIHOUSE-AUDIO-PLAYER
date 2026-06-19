@@ -7,6 +7,7 @@ import { WaveformAdapter } from "../components/WaveformAdapter"
 import { BackgroundMedia, ensureMuted, resolveMedia } from "../components/BackgroundMedia"
 import { VolumeControl } from "../components/VolumeControl"
 import { SAPController } from "../components/SAPController"
+import { HoldSkipButton } from "../components/HoldSkipButton"
 import { useShareTrack } from "../components/useShareTrack"
 import { formatTime } from "../utils/formatTime"
 import { defaultShowVolume } from "../utils/device"
@@ -30,10 +31,8 @@ import { SEICanvasRenderer } from "../visual-slots/SEICanvasRenderer"
 import { ScrubberCanvasRenderer } from "../visual-slots/ScrubberCanvasRenderer"
 import type { WorkspaceRoute } from "../components/workspace/workspaceRoutes"
 import {
-    Back10Icon,
     DotsIcon,
     ErrorIcon,
-    Fwd10Icon,
     NextIcon,
     PauseIcon,
     PlayIcon,
@@ -451,24 +450,18 @@ export function FullCardPlayer({
                 </ScrubberCanvasHost>
 
                 <div className="ap-transport" role="group" aria-label="Playback controls">
-                    <button
-                        type="button"
-                        className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                        onClick={s.previous}
-                        disabled={!canPrevious}
-                        aria-label="Previous track"
+                    <HoldSkipButton
+                        direction="previous"
+                        className="ap-btn ap-btn--ghost ap-tap"
+                        disabled={!hasAudio}
+                        skipDisabled={!canPrevious}
+                        seekLabel="Skip backward 10 seconds"
+                        skipLabel="Previous track"
+                        onSeek={() => s.seekBy(-10)}
+                        onSkip={s.previous}
                     >
                         <PrevIcon />
-                    </button>
-                    <button
-                        type="button"
-                        className="ap-btn ap-btn--ghost ap-tap"
-                        onClick={() => s.seekBy(-10)}
-                        disabled={!hasAudio}
-                        aria-label="Skip backward 10 seconds"
-                    >
-                        <Back10Icon />
-                    </button>
+                    </HoldSkipButton>
                     <button
                         type="button"
                         className={`ap-btn ap-btn--play ap-tap${isPlaying ? " ap-btn--play-active" : ""}`}
@@ -478,24 +471,18 @@ export function FullCardPlayer({
                     >
                         {showPlaySpinner ? <SpinnerIcon /> : isPlaying ? <PauseIcon /> : <PlayIcon />}
                     </button>
-                    <button
-                        type="button"
+                    <HoldSkipButton
+                        direction="next"
                         className="ap-btn ap-btn--ghost ap-tap"
-                        onClick={() => s.seekBy(10)}
                         disabled={!hasAudio}
-                        aria-label="Skip forward 10 seconds"
-                    >
-                        <Fwd10Icon />
-                    </button>
-                    <button
-                        type="button"
-                        className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                        onClick={s.next}
-                        disabled={!canNext}
-                        aria-label="Next track"
+                        skipDisabled={!canNext}
+                        seekLabel="Skip forward 10 seconds"
+                        skipLabel="Next track"
+                        onSeek={() => s.seekBy(10)}
+                        onSkip={s.next}
                     >
                         <NextIcon />
-                    </button>
+                    </HoldSkipButton>
                 </div>
 
                 {showVolume && (

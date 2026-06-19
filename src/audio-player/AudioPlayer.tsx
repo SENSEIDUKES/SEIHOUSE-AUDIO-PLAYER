@@ -37,6 +37,7 @@ import { ScrubberCanvasRenderer } from "./visual-slots/ScrubberCanvasRenderer"
 import { VolumeControl } from "./components/VolumeControl"
 import { QueueDrawer } from "./components/QueueDrawer"
 import { SAPController } from "./components/SAPController"
+import { HoldSkipButton } from "./components/HoldSkipButton"
 import { useShareTrack } from "./components/useShareTrack"
 import { ExplicitBadge } from "./components/TrackMetadata"
 import { formatTime } from "./utils/formatTime"
@@ -870,27 +871,18 @@ function AudioPlayerBody(props: AudioPlayerBodyProps) {
                 </div>
 
                 <div className="ap-transport" role="group" aria-label="Playback controls">
-                    {isPlaylistMode && (
-                        <button
-                            type="button"
-                            className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                            onClick={s.previous}
-                            disabled={!canPreviousTrack}
-                            aria-label="Previous track"
-                        >
-                            <PrevIcon />
-                        </button>
-                    )}
-
-                    <button
-                        type="button"
+                    <HoldSkipButton
+                        direction="previous"
                         className="ap-btn ap-btn--ghost ap-tap"
-                        onClick={() => s.seekBy(-10)}
                         disabled={!hasAudio}
-                        aria-label="Skip backward 10 seconds"
+                        skipDisabled={!isPlaylistMode || !canPreviousTrack}
+                        seekLabel="Skip backward 10 seconds"
+                        skipLabel="Previous track"
+                        onSeek={() => s.seekBy(-10)}
+                        onSkip={s.previous}
                     >
-                        <Back10Icon />
-                    </button>
+                        <PrevIcon />
+                    </HoldSkipButton>
 
                     <button
                         type="button"
@@ -916,27 +908,18 @@ function AudioPlayerBody(props: AudioPlayerBodyProps) {
                         )}
                     </button>
 
-                    <button
-                        type="button"
+                    <HoldSkipButton
+                        direction="next"
                         className="ap-btn ap-btn--ghost ap-tap"
-                        onClick={() => s.seekBy(10)}
                         disabled={!hasAudio}
-                        aria-label="Skip forward 10 seconds"
+                        skipDisabled={!isPlaylistMode || !canNextTrack}
+                        seekLabel="Skip forward 10 seconds"
+                        skipLabel="Next track"
+                        onSeek={() => s.seekBy(10)}
+                        onSkip={s.next}
                     >
-                        <Fwd10Icon />
-                    </button>
-
-                    {isPlaylistMode && (
-                        <button
-                            type="button"
-                            className="ap-btn ap-btn--ghost ap-btn--sm ap-tap"
-                            onClick={s.next}
-                            disabled={!canNextTrack}
-                            aria-label="Next track"
-                        >
-                            <NextIcon />
-                        </button>
-                    )}
+                        <NextIcon />
+                    </HoldSkipButton>
                 </div>
 
                 {showVolume && (
@@ -1048,20 +1031,6 @@ const SpinnerIcon = () => (
     <svg className="ap-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" opacity="0.25" />
         <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-    </svg>
-)
-const Back10Icon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M3.5 12a8.5 8.5 0 1 0 2.7-6.2" />
-        <polyline points="3 3 6.2 5.8 3.4 8.5" />
-        <text x="12" y="15" textAnchor="middle" fontSize="7" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, -apple-system, sans-serif">10</text>
-    </svg>
-)
-const Fwd10Icon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M20.5 12a8.5 8.5 0 1 1-2.7-6.2" />
-        <polyline points="21 3 17.8 5.8 20.6 8.5" />
-        <text x="12" y="15" textAnchor="middle" fontSize="7" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, -apple-system, sans-serif">10</text>
     </svg>
 )
 const PrevIcon = () => (
