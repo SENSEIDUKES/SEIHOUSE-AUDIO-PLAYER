@@ -234,6 +234,7 @@ export {
     VAULT_CATEGORY_META,
     getVaultCategoryMeta,
     registerVaultCategory,
+    clearCustomCategories,
     getAllVaultCategories,
 } from "./skins/vaultCategories"
 export type { VaultCategoryMeta } from "./skins/vaultCategories"

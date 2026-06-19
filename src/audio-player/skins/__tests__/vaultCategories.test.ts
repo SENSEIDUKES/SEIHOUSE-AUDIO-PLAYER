@@ -1,10 +1,15 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import {
     VAULT_CATEGORY_META,
+    clearCustomCategories,
     getAllVaultCategories,
     getVaultCategoryMeta,
     registerVaultCategory,
 } from "../vaultCategories"
+
+// The registry is module-scoped; clear custom entries between tests so neither
+// order nor future exact-count assertions can leak state.
+afterEach(() => clearCustomCategories())
 
 describe("vault category lookup", () => {
     it("resolves a built-in category", () => {

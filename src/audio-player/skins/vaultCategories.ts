@@ -45,6 +45,12 @@ export function registerVaultCategory(id: string, meta: VaultCategoryMeta): void
     CUSTOM_CATEGORIES.set(id, meta)
 }
 
+/** Remove all custom registrations, restoring the built-in defaults. Mainly
+ *  useful for test isolation, or to reset host-defined categories. */
+export function clearCustomCategories(): void {
+    CUSTOM_CATEGORIES.clear()
+}
+
 /**
  * Every known category as `[id, meta]` pairs — built-ins first, then custom
  * registrations (custom entries that reuse a built-in id appear once, overridden).
