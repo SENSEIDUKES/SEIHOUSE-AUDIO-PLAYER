@@ -28,7 +28,7 @@
     transition: background-color 0.2s ease, border-color 0.2s ease,
         color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
-.ap-surface-btn:hover:not(:disabled) {
+.ap-surface-btn:hover:not(:disabled):not(.ap-surface-btn--active) {
     background-color: color-mix(in srgb, var(--ap-text, #fff) 14%, transparent);
 }
 .ap-surface-btn:active:not(:disabled) {
