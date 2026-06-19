@@ -41,6 +41,12 @@ describe("resolveArtworkSrc", () => {
         )
     })
 
+    it("passes a plain URL through unchanged, even with parentheses", () => {
+        expect(resolveArtworkSrc("https://cdn/cover(1).jpg")).toBe(
+            "https://cdn/cover(1).jpg"
+        )
+    })
+
     it("unwraps a CSS url() value to a usable image URL", () => {
         expect(resolveArtworkSrc('url("https://cdn/cover.jpg")')).toBe(
             "https://cdn/cover.jpg"
@@ -54,10 +60,12 @@ describe("resolveArtworkSrc", () => {
         expect(resolveArtworkSrc("radial-gradient(#000,#fff)")).toBeUndefined()
     })
 
-    it("treats empty / nullish candidates as no artwork", () => {
+    it("treats empty / nullish / non-string candidates as no artwork", () => {
         expect(resolveArtworkSrc(undefined)).toBeUndefined()
         expect(resolveArtworkSrc(null)).toBeUndefined()
         expect(resolveArtworkSrc("")).toBeUndefined()
         expect(resolveArtworkSrc("   ")).toBeUndefined()
+        expect(resolveArtworkSrc(123 as unknown as string)).toBeUndefined()
+        expect(resolveArtworkSrc({} as unknown as string)).toBeUndefined()
     })
 })

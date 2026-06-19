@@ -50,14 +50,16 @@ export function extractUrlFromCss(css: string): string | null {
 export function resolveArtworkSrc(
     value: string | null | undefined
 ): string | undefined {
-    if (!value) return undefined
+    if (typeof value !== "string") return undefined
     const trimmed = value.trim()
     if (!trimmed) return undefined
     // CSS `url("…")` wrapper → the bare URL inside it.
     const fromCss = extractUrlFromCss(trimmed)
     if (fromCss) return fromCss
-    // A gradient or any other CSS function isn't a usable image.
-    if (/[a-z-]+\(/i.test(trimmed)) return undefined
+    // A gradient or any other CSS function isn't a usable image. Anchored to
+    // the start so a URL with parentheses (e.g. `cover(1).jpg`) isn't
+    // mistaken for one.
+    if (/^[a-z-]+\(/i.test(trimmed)) return undefined
     return trimmed
 }
 
