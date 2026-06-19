@@ -18,28 +18,32 @@
     height: 40px;
     flex-shrink: 0;
     border-radius: 12px;
-    border: 1px solid color-mix(in srgb, var(--ap-text, #fff) 18%, transparent);
-    background-color: color-mix(in srgb, var(--ap-text, #fff) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ap-text, #fff) 20%, transparent);
+    /* A neutral dark base keeps the chip darker than a bright surface (so its
+       icon stays visible on yellow/green), while the --ap-text tint keeps it
+       feeling glassy on dark surfaces. Edge is defined by a dark outer ring +
+       drop shadow that show up regardless of how light the surface color is. */
+    background-color: color-mix(in srgb, var(--ap-text, #fff) 12%, rgba(8, 10, 16, 0.16));
     color: var(--ap-text, #fff);
     cursor: pointer;
-    /* Frosted glass chip with a soft bevel + drop so it reads as a raised
-       control rather than a flat gray square on the surface. */
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
         inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-        0 1px 4px rgba(0, 0, 0, 0.16);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 6px rgba(0, 0, 0, 0.2);
     -webkit-backdrop-filter: blur(8px) saturate(130%);
     backdrop-filter: blur(8px) saturate(130%);
     transition: background-color 0.2s ease, border-color 0.2s ease,
         color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
 .ap-surface-btn:hover:not(:disabled):not(.ap-surface-btn--active) {
-    background-color: color-mix(in srgb, var(--ap-text, #fff) 18%, transparent);
-    border-color: color-mix(in srgb, var(--ap-text, #fff) 26%, transparent);
+    background-color: color-mix(in srgb, var(--ap-text, #fff) 20%, rgba(8, 10, 16, 0.16));
+    border-color: color-mix(in srgb, var(--ap-text, #fff) 30%, transparent);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.24),
         inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-        0 2px 7px rgba(0, 0, 0, 0.2);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 3px 9px rgba(0, 0, 0, 0.24);
 }
 .ap-surface-btn:active:not(:disabled) {
     box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.22);
