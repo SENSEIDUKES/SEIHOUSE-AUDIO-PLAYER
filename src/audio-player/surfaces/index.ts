@@ -44,6 +44,9 @@ export type { PlayerSurfaceButtonsProps } from "./PlayerSurfaceButtons"
 export { SEICanvasActionMenu, arcOffsets, ARC_RADIUS } from "./SEICanvasActionMenu"
 export type { SEICanvasActionMenuProps, ArcOffset } from "./SEICanvasActionMenu"
 
+export { ArcActionButton } from "./ArcActionButton"
+export type { ArcAction, ArcActionButtonProps } from "./ArcActionButton"
+
 export { buildMenuTree, isNodeInteractive } from "../menu/menuData"
 export type {
     MenuNode,

@@ -28,11 +28,49 @@ export const VAULT_CATEGORY_META: Record<VaultCategory, VaultCategoryMeta> = {
     archived: { label: "Archived", color: "#6B7280" },
 }
 
-/** Look up a category's visual identity, or `null` when none is set. */
+/**
+ * Host-registered custom categories. Kept in a Map (mirroring the visual-slots
+ * registry) so apps can add their own classifications — or recolor a built-in —
+ * without editing the library. Checked before the built-ins so a registration
+ * can override a built-in id.
+ */
+const CUSTOM_CATEGORIES = new Map<string, VaultCategoryMeta>()
+
+/**
+ * Register (or replace) a custom Vault category's visual identity. Call once at
+ * startup; rows reading `track.vaultCategory === id` then pick up the label +
+ * accent color automatically. Registering under a built-in id overrides it.
+ */
+export function registerVaultCategory(id: string, meta: VaultCategoryMeta): void {
+    CUSTOM_CATEGORIES.set(id, meta)
+}
+
+/**
+ * Every known category as `[id, meta]` pairs — built-ins first, then custom
+ * registrations (custom entries that reuse a built-in id appear once, overridden).
+ * Useful for building a category picker.
+ */
+export function getAllVaultCategories(): Array<[string, VaultCategoryMeta]> {
+    const merged = new Map<string, VaultCategoryMeta>(
+        Object.entries(VAULT_CATEGORY_META)
+    )
+    for (const [id, meta] of CUSTOM_CATEGORIES) merged.set(id, meta)
+    return Array.from(merged.entries())
+}
+
+/**
+ * Look up a category's visual identity, or `null` when none is set. Accepts any
+ * string so custom (host-registered) categories resolve alongside the built-ins;
+ * custom registrations win. Unknown values return `null`, keeping the contract
+ * honest against unexpected external data.
+ */
 export function getVaultCategoryMeta(
-    category: VaultCategory | undefined
+    category: string | undefined
 ): VaultCategoryMeta | null {
-    // `|| null` guards against an unexpected runtime string (e.g. from external
-    // API data) that isn't a real key, keeping the declared return type honest.
-    return (category && VAULT_CATEGORY_META[category]) || null
+    if (!category) return null
+    return (
+        CUSTOM_CATEGORIES.get(category) ??
+        VAULT_CATEGORY_META[category as VaultCategory] ??
+        null
+    )
 }

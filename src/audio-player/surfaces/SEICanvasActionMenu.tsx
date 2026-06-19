@@ -16,7 +16,15 @@ export const ARC_RADIUS = 128
  * `document.body`, outside the player's token scope. Keeping this a plain list
  * (rather than importing the theme builder) lets the arc stay decoupled.
  */
-const THEME_VARS = ["--ap-accent", "--ap-text", "--ap-play-icon", "--ap-bg"] as const
+const THEME_VARS = [
+    "--ap-accent",
+    "--ap-text",
+    "--ap-play-icon",
+    "--ap-bg",
+    // Vault rows set a per-classification accent; carry it so the overlay nodes
+    // can theme to the row's category color, not just the base accent.
+    "--ap-vault-accent",
+] as const
 
 export interface ArcOffset {
     x: number
@@ -60,10 +68,11 @@ function resolveLevel(items: MenuNode[], path: string[]): ResolvedLevel {
 export interface SEICanvasActionMenuProps {
     /** The menu tree to render. */
     items: MenuNode[]
-    /** Resolves the `open-queue` leaf action. */
-    onOpenQueue: () => void
-    /** Resolves the `activate-canvas` leaf action. */
-    onActivateCanvas: () => void
+    /** Resolves the `open-queue` leaf action. Optional — decoupled callers (e.g.
+        a generic ArcActionButton) render trees with no such leaf. */
+    onOpenQueue?: () => void
+    /** Resolves the `activate-canvas` leaf action. Optional, as above. */
+    onActivateCanvas?: () => void
     /** Resolves any other leaf action (and `select-lyrics`). */
     onSelect?: (node: MenuNode) => void
     /**
@@ -211,10 +220,10 @@ export function SEICanvasActionMenu({
             }
             switch (node.actionId) {
                 case "open-queue":
-                    onOpenQueue()
+                    onOpenQueue?.()
                     break
                 case "activate-canvas":
-                    onActivateCanvas()
+                    onActivateCanvas?.()
                     break
                 default:
                     onSelect?.(node)

@@ -7,29 +7,47 @@ import {
     StickyBottomPlayer,
     MiniSidebarPlayer,
     SeaCardPlayer,
+    registerVaultCategory,
 } from "../audio-player"
-import type { Track, VaultCategory } from "../audio-player"
+import type { ArcAction, Track, VaultCategory } from "../audio-player"
+import { QueueIcon, ShareIcon } from "../audio-player/skins/icons"
 import { noLuckTracks, NO_LUCK_COVER, NO_LUCK_ART, SEA_THEME } from "./data"
+
+/* Demonstrate a host-registered CUSTOM classification (beyond the built-ins) —
+   it picks up the full accent system (rail, chip, hover/active) automatically. */
+registerVaultCategory("liveTake", { label: "Live Take", color: "#E879F9" })
 
 /* Showcase-only Vault fixture: the same No Luck tracks (ids preserved so they
    still play into the shared session queue) tagged with vaultCategory values so
-   VaultRowPlayer can demonstrate per-category color identity from PR #42. */
-const VAULT_SHOWCASE_CATEGORIES: VaultCategory[] = [
+   VaultRowPlayer can demonstrate per-category color identity. The last entry is
+   the custom category registered above. */
+const VAULT_SHOWCASE_CATEGORIES: (VaultCategory | string)[] = [
     "demo",
     "beat",
     "mix",
     "master",
-    "memo",
     "toFinish",
+    "liveTake",
 ]
 const vaultShowcaseTracks: Track[] = noLuckTracks.map((track, i) => ({
     ...track,
     vaultCategory: VAULT_SHOWCASE_CATEGORIES[i % VAULT_SHOWCASE_CATEGORIES.length],
 }))
 
-/* Simple demo handler so the VaultRow action button actually renders here. */
-const handleVaultAction = (track: Track) =>
-    console.log("Vault action", track.title)
+/* Build the row's Arc actions. New actions are just appended here — the row
+   never changes. A nested "More" branch shows submenu support. */
+const vaultActions = (track: Track): ArcAction[] => [
+    { id: "queue", label: "Add to Queue", icon: QueueIcon, onSelect: () => console.log("queue", track.title) },
+    { id: "share", label: "Share", icon: ShareIcon, onSelect: () => console.log("share", track.title) },
+    {
+        id: "more",
+        label: "More",
+        children: [
+            { id: "edit", label: "Edit", onSelect: () => console.log("edit", track.title) },
+            { id: "archive", label: "Archive", onSelect: () => console.log("archive", track.title) },
+        ],
+    },
+]
 
 /* Captioned gallery card: every face example gets a name, a one-line
    description, and small capability tags so the family rules read at a glance. */
@@ -254,8 +272,8 @@ export function Showcase() {
                         </FaceCard>
                         <FaceCard
                             name="VaultRowPlayer"
-                            surface="List / data / action row — Vault-category color identity, an action button, and no per-row scrubber."
-                            tags={["Vault category color", "Action button", "No per-row scrubber"]}
+                            surface="List / data / action row — full-row classification color, an Arc action button, and no per-row scrubber."
+                            tags={["Classification color", "Arc actions", "No per-row scrubber"]}
                             wide
                         >
                             <div className="showcase-face__vault">
@@ -264,7 +282,7 @@ export function Showcase() {
                                         key={t.id ?? t.title}
                                         track={t}
                                         number={i + 1}
-                                        onAction={handleVaultAction}
+                                        actions={vaultActions(t)}
                                         {...SEA_THEME}
                                     />
                                 ))}

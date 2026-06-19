@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import type { CSSProperties } from "react"
 import type { AudioPlayerTheme, Track } from "../types"
 import { useAudioSession } from "../session/AudioSessionContext"
@@ -9,6 +10,8 @@ import {
 } from "../utils/formatMetadata"
 import { trackKey } from "../utils/trackKey"
 import { faceSupportsAction } from "../surfaces/faceCapabilities"
+import { ArcActionButton } from "../surfaces/ArcActionButton"
+import type { ArcAction } from "../surfaces/ArcActionButton"
 import { getVaultCategoryMeta } from "./vaultCategories"
 import { buildThemeVars } from "./themeVars"
 import { DotsIcon, PauseIcon, PlayIcon, SpinnerIcon } from "./icons"
@@ -20,10 +23,15 @@ export interface VaultRowPlayerProps extends AudioPlayerTheme {
     /** Optional 1-based number shown at the left of the row. */
     number?: number
     /**
-     * Action entry point for this row (opens the host's row actions: add to
-     * playlist, share, edit, etc.). Deep actions belong to the container; the
-     * row only surfaces the affordance. The action button is part of the compact
-     * family contract (`faceSupportsAction("vaultRow")`).
+     * Row actions surfaced through the Arc Action Button (the primary row action
+     * surface). A plain, extensible list — append actions or nest `children`
+     * without touching the row. Supersedes `onAction`.
+     */
+    actions?: ArcAction[]
+    /**
+     * @deprecated Legacy single action entry point. When `actions` is omitted,
+     * this is synthesized into a single "More" arc action so existing callers
+     * keep working. Prefer `actions`.
      */
     onAction?: (track: Track) => void
     className?: string
@@ -52,6 +60,7 @@ function sameTrack(a: Track, b: Track): boolean {
 export function VaultRowPlayer({
     track,
     number,
+    actions,
     onAction,
     className,
     style,
@@ -64,9 +73,21 @@ export function VaultRowPlayer({
     // row so only the active track's button can spin.
     const isBufferingThis = isActive && s.isBuffering
     const category = getVaultCategoryMeta(track.vaultCategory)
-    // The capability allows the button, but only render it when there's a real
-    // handler — otherwise it would be an interactive yet non-functional control.
-    const showAction = faceSupportsAction("vaultRow") && !!onAction
+    // Resolve the arc actions: prefer the explicit list; otherwise synthesize a
+    // single "More" action from the legacy `onAction` so existing callers keep a
+    // working action surface (now an arc instead of a three-dot menu).
+    const resolvedActions = useMemo<ArcAction[]>(() => {
+        if (actions && actions.length > 0) return actions
+        if (onAction) {
+            return [
+                { id: "more", label: "More", icon: DotsIcon, onSelect: () => onAction(track) },
+            ]
+        }
+        return []
+    }, [actions, onAction, track])
+    // The capability allows the button, but only render it when there are actions
+    // — otherwise it would be an interactive yet empty control.
+    const showAction = faceSupportsAction("vaultRow") && resolvedActions.length > 0
 
     const handleToggle = () => {
         if (isActive) s.toggle()
@@ -87,12 +108,9 @@ export function VaultRowPlayer({
             aria-current={isActive ? "true" : undefined}
         >
             {category && (
-                <span
-                    className="ap-vr__cat"
-                    role="img"
-                    title={category.label}
-                    aria-label={category.label}
-                />
+                <span className="ap-vr__chip" title={category.label}>
+                    {category.label}
+                </span>
             )}
             {number !== undefined && <span className="ap-vr__num">{number}</span>}
             <button
@@ -121,7 +139,6 @@ export function VaultRowPlayer({
                     className="ap-vr__artist"
                     title={formatSecondaryLine(track)}
                 >
-                    {category ? `${category.label} · ` : ""}
                     {formatSecondaryLine(track)}
                 </span>
             </div>
@@ -136,15 +153,11 @@ export function VaultRowPlayer({
                 </span>
             )}
             {showAction && (
-                <button
-                    type="button"
-                    className="ap-icon-btn ap-vr__action ap-tap"
-                    onClick={() => onAction?.(track)}
-                    aria-label={`More actions for ${track.title}`}
-                    aria-haspopup="menu"
-                >
-                    <DotsIcon />
-                </button>
+                <ArcActionButton
+                    actions={resolvedActions}
+                    ariaLabel={`Actions for ${track.title}`}
+                    className="ap-vr__action"
+                />
             )}
         </div>
     )
