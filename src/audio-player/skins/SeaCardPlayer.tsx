@@ -155,34 +155,41 @@ export function SeaCardPlayer({
                         <WaveIcon />
                     </button>
                 )}
-                {/* Arc Action Button: the card's action surface. Overlays the
-                    art bottom-right, mirroring the wave trigger (top-left) and
-                    tag (top-right) so it reads as a native on-art control. The
-                    trigger is a single button when closed (cheap in a grid) and
-                    portals the arc overlay on tap. */}
-                {showAction && (
-                    <ArcActionButton
-                        actions={actions!}
-                        ariaLabel={`Actions for ${track.title}`}
-                        className="ap-sea__action"
-                    />
-                )}
             </div>
             <div className="ap-sea__body">
-                <div
-                    className="ap-sea__title"
-                    title={formatVersionedTitle(track.title, track.versionLabel)}
-                    style={titleFont}
-                >
-                    {formatVersionedTitle(track.title, track.versionLabel)}
-                    {track.explicit && <ExplicitBadge />}
-                </div>
-                <div
-                    className="ap-sea__artist"
-                    title={formatSecondaryLine(track)}
-                    style={artistFont}
-                >
-                    {formatSecondaryLine(track)}
+                {/* Title/artist sit in a row with the Arc action trigger on the
+                    right, so the card's action surface lives beside the metadata
+                    (not overlaid on the artwork). The text column flexes and
+                    truncates; the trigger keeps a fixed footprint on the right. */}
+                <div className="ap-sea__head">
+                    <div className="ap-sea__meta">
+                        <div
+                            className="ap-sea__title"
+                            title={formatVersionedTitle(track.title, track.versionLabel)}
+                            style={titleFont}
+                        >
+                            {formatVersionedTitle(track.title, track.versionLabel)}
+                            {track.explicit && <ExplicitBadge />}
+                        </div>
+                        <div
+                            className="ap-sea__artist"
+                            title={formatSecondaryLine(track)}
+                            style={artistFont}
+                        >
+                            {formatSecondaryLine(track)}
+                        </div>
+                    </div>
+                    {/* Arc Action Button: the card's action surface. Sits at the
+                        right of the title/artist row. The trigger is a single
+                        button when closed (cheap in a grid) and portals the arc
+                        overlay on tap. */}
+                    {showAction && (
+                        <ArcActionButton
+                            actions={actions!}
+                            ariaLabel={`Actions for ${track.title}`}
+                            className="ap-sea__action"
+                        />
+                    )}
                 </div>
                 {/* Hide the inline scrubber while the waveform overlay is open so
                     the card never shows two scrubbers at once. */}
