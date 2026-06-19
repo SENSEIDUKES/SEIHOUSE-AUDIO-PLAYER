@@ -528,17 +528,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    /* Keeps the title readable over very bright/saturated surface colors,
-       independent of the chosen --ap-text value. */
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    /* Soft dual halo (tight + diffuse) keeps the title crisp over very bright
+       surface colors, independent of the chosen --ap-text value — readability
+       comes from here, not from darkening the whole widget. */
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.32), 0 1px 5px rgba(0, 0, 0, 0.22);
 }
 .ap-ms__artist {
     font-size: 12px;
-    opacity: 0.6;
+    opacity: 0.68;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.28), 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 .ap-ms__play {
     /* Anchor for the coarse-pointer hit-area pseudo-element. */
