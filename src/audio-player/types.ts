@@ -97,8 +97,10 @@ export interface Track {
      *  artist to show. */
     subtitle?: string
     /** Vault identity category. Gives a Vault row its accent color + status
-     *  label without depending on per-row artwork. Ignored by other faces. */
-    vaultCategory?: VaultCategory
+     *  label without depending on per-row artwork. Ignored by other faces.
+     *  Accepts the built-in `VaultCategory` values (with autocomplete) or any
+     *  custom string registered via `registerVaultCategory`. */
+    vaultCategory?: VaultCategory | (string & {})
 }
 
 /** Theme colors. Applied to the player root as CSS custom properties. */

@@ -249,6 +249,11 @@
 }
 
 /* ----------------------------- Vault row ----------------------------- */
+/* Classification color drives the WHOLE row (not just a dot): a solid left rail,
+   a tinted border, hover/active fills, the category chip, and the arc action
+   highlight all derive from `--ap-vault-accent` (set from `Track.vaultCategory`),
+   falling back to the theme `--ap-accent` for uncategorized rows. Tints use
+   `color-mix` so the hue stays subtle and content stays dominant. */
 .ap-vr {
     box-sizing: border-box;
     display: flex;
@@ -259,18 +264,26 @@
     border-radius: 10px;
     background-color: var(--ap-bg);
     color: var(--ap-text);
-    border: 1px solid transparent;
+    border: 1px solid color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 24%, transparent);
+    /* Solid classification rail down the leading edge — the primary scan cue. */
+    border-left: 3px solid var(--ap-vault-accent, var(--ap-accent));
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    /* Make the row a query container so its layout adapts to the row's own
+       width (mobile, narrow sidebars), independent of the viewport. */
+    container-type: inline-size;
 }
 .ap-vr *,
 .ap-vr *::before,
 .ap-vr *::after {
     box-sizing: border-box;
 }
+.ap-vr:hover {
+    background-color: color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 8%, var(--ap-bg));
+}
 .ap-vr--active {
-    border-color: var(--ap-accent);
-    background-color: rgba(255, 255, 255, 0.08);
+    border-color: color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 55%, transparent);
+    background-color: color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 14%, var(--ap-bg));
 }
 .ap-vr__num {
     min-width: 20px;
@@ -301,7 +314,14 @@
     white-space: nowrap;
 }
 .ap-vr__artist {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
     font-size: 12px;
+}
+.ap-vr__artist-text {
+    min-width: 0;
     opacity: 0.6;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -313,22 +333,57 @@
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 }
-/* Vault category identity: a small accent dot derived from `Track.vaultCategory`
-   (via `--ap-vault-accent`). Cheap to render — no per-row artwork. */
-.ap-vr__cat {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+/* Vault category identity: a labeled pill in the classification color, derived
+   from `Track.vaultCategory` (via `--ap-vault-accent`). Replaces the old subtle
+   dot so the row type is readable at a glance while scrolling. */
+.ap-vr__chip {
     flex-shrink: 0;
-    background-color: var(--ap-vault-accent, var(--ap-accent));
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--ap-vault-accent, var(--ap-accent));
+    background-color: color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 40%, transparent);
 }
-/* When a category accent is present, the active row tints to it instead of the
-   generic theme accent, giving the list per-category visual identity. */
-.ap-vr[data-vault-category].ap-vr--active {
-    border-color: var(--ap-vault-accent, var(--ap-accent));
+/* Two placements for the same chip: a leading pill on wide rows (desktop) and a
+   compact inline chip on the artist line for narrow rows (mobile), so the title
+   never has to share its line with the chip. Exactly one shows at a time. */
+.ap-vr__chip--inline {
+    display: none;
+    font-size: 10px;
+    padding: 1px 6px;
 }
 .ap-vr__action {
     flex-shrink: 0;
+}
+
+/* Mobile / narrow rows: give the title + artist the room they need. The leading
+   chip and the row number step aside (the colored rail still signals category,
+   and the chip reappears inline on the artist line); the inline time is dropped
+   since seeking lives on the shared StickyBottom scrubber. */
+@container (max-width: 380px) {
+    .ap-vr {
+        gap: 8px;
+        padding: 8px 10px;
+    }
+    .ap-vr__chip--lead {
+        display: none;
+    }
+    .ap-vr__chip--inline {
+        display: inline-flex;
+    }
+    .ap-vr__num,
+    .ap-vr__time {
+        display: none;
+    }
+}
+/* The arc trigger adopts the row's classification color when open/active. */
+.ap-vr__action.ap-surface-btn--active {
+    border-color: var(--ap-vault-accent, var(--ap-accent));
+    background-color: color-mix(in srgb, var(--ap-vault-accent, var(--ap-accent)) 22%, transparent);
 }
 
 /* ----------------------------- Sticky bottom bar ----------------------------- */

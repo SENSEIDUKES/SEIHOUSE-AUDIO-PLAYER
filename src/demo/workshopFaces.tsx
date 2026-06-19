@@ -8,14 +8,17 @@ import {
     SeaCardPlayer,
 } from "../audio-player"
 import type {
+    ArcAction,
     AudioPlayerPlugin,
     AudioPlayerTheme,
     MediaSource,
     PlayerFace,
     RepeatMode,
     Track,
+    VaultCategory,
 } from "../audio-player"
 import { getPropertyDefaults } from "../audio-player"
+import { QueueIcon, ShareIcon } from "../audio-player/skins/icons"
 import { NO_LUCK_COVER, NO_LUCK_ART } from "./data"
 
 export type WorkshopFaceId =
@@ -115,6 +118,24 @@ export function defaultWorkshopSettings(): WorkshopSettings {
     }
 }
 
+/* Rotating categories so the Vault preview shows the classification color
+   system across several types at once. */
+const WORKSHOP_VAULT_CATEGORIES: VaultCategory[] = [
+    "demo",
+    "beat",
+    "mix",
+    "master",
+    "toFinish",
+    "arcNote",
+]
+
+/* Default Arc actions for a Vault row in the workshop. Appending here is all it
+   takes to add a row action — the row never changes. */
+const vaultRowActions = (track: Track): ArcAction[] => [
+    { id: "queue", label: "Add to Queue", icon: QueueIcon, onSelect: () => console.log("queue", track.title) },
+    { id: "share", label: "Share", icon: ShareIcon, onSelect: () => console.log("share", track.title) },
+]
+
 export const WORKSHOP_FACES: readonly WorkshopFaceDefinition[] = [
     {
         id: "audio-player",
@@ -200,20 +221,39 @@ export const WORKSHOP_FACES: readonly WorkshopFaceDefinition[] = [
         id: "vault-row",
         label: "VaultRowPlayer",
         description:
-            "Slim Vault list rows — pressing play in any row drives the shared session.",
+            "Slim Vault list rows — classification color fills the whole row and the Arc button is the action surface.",
         playerFace: "vaultRow",
         sessionBased: true,
         controls: ["theme"],
         render: ({ settings, tracks }) => (
             <div className="workshop__vault">
-                {tracks.map((t, i) => (
-                    <VaultRowPlayer
-                        key={t.id ?? t.title}
-                        track={t}
-                        number={i + 1}
-                        {...settings.theme}
-                    />
-                ))}
+                {tracks.map((t, i) => {
+                    // Tag rows with rotating categories so the classification
+                    // color system is visible in the workshop preview.
+                    const tagged: Track = {
+                        ...t,
+                        vaultCategory: WORKSHOP_VAULT_CATEGORIES[i % WORKSHOP_VAULT_CATEGORIES.length],
+                    }
+                    // First row uses the legacy `onAction` to prove the arc still
+                    // renders via back-compat synthesis; the rest use `actions`.
+                    return i === 0 ? (
+                        <VaultRowPlayer
+                            key={tagged.id ?? tagged.title}
+                            track={tagged}
+                            number={i + 1}
+                            onAction={(track) => console.log("vault action", track.title)}
+                            {...settings.theme}
+                        />
+                    ) : (
+                        <VaultRowPlayer
+                            key={tagged.id ?? tagged.title}
+                            track={tagged}
+                            number={i + 1}
+                            actions={vaultRowActions(tagged)}
+                            {...settings.theme}
+                        />
+                    )
+                })}
             </div>
         ),
     },

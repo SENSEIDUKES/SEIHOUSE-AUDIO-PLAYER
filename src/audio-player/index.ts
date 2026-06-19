@@ -233,6 +233,9 @@ export { SeaCardPlayer } from "./skins/SeaCardPlayer"
 export {
     VAULT_CATEGORY_META,
     getVaultCategoryMeta,
+    registerVaultCategory,
+    clearCustomCategories,
+    getAllVaultCategories,
 } from "./skins/vaultCategories"
 export type { VaultCategoryMeta } from "./skins/vaultCategories"
 
@@ -262,6 +265,7 @@ export {
     SEICanvasActionMenu,
     arcOffsets,
     ARC_RADIUS,
+    ArcActionButton,
     buildMenuTree,
     isNodeInteractive,
     SEICanvasHost,
@@ -283,6 +287,8 @@ export type {
     PlayerSurfaceButtonsProps,
     SEICanvasActionMenuProps,
     ArcOffset,
+    ArcAction,
+    ArcActionButtonProps,
     MenuNode,
     MenuItemState,
     MenuActionId,
