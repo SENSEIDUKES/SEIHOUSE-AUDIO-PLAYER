@@ -45,6 +45,7 @@ import {
     formatSecondaryLine,
     formatVersionedTitle,
 } from "./utils/formatMetadata"
+import { useArtworkColor } from "./utils/useArtworkColor"
 import { defaultShowVolume } from "./utils/device"
 import { FixedSizeList } from "react-window"
 import { resolveTrackList } from "./utils/trackList"
@@ -595,6 +596,10 @@ function AudioPlayerBody(props: AudioPlayerBodyProps) {
         () => (artworkSrc ? buildMediaSessionArtwork(artworkSrc) : []),
         [artworkSrc],
     )
+    
+    // Extract dynamic color from artwork for Chameleon theming
+    const dynamicColor = useArtworkColor(artworkSrc)
+
     useMediaSessionObserver(s, {
         title: currentTrack.title,
         artist: currentTrack.artist,
@@ -620,13 +625,13 @@ function AudioPlayerBody(props: AudioPlayerBodyProps) {
     }, [])
 
     const themeVars = {
-        "--ap-accent": accentColor,
+        "--ap-accent": accentColor === "#FFFFFF" && dynamicColor ? dynamicColor : accentColor,
         "--ap-play-icon": playIconColor,
         "--ap-text": textColor,
-        "--ap-progress": progressColor,
+        "--ap-progress": progressColor === "#FFFFFF" && dynamicColor ? dynamicColor : progressColor,
         "--ap-track": trackColor,
         "--ap-bg": backgroundColor,
-        "--ap-glow": glowColor,
+        "--ap-glow": glowColor === "transparent" && dynamicColor ? dynamicColor : glowColor,
         "--ap-glow-intensity": glowIntensity / 100,
         "--ap-btn-opacity-delta": `${buttonOpacity}%`,
         "--ap-blur": `${blurSize}px`,
