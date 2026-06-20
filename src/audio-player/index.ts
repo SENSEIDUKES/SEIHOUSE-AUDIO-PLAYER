@@ -83,6 +83,8 @@ export {
     trackSourcesSignature,
 } from "./utils/sources"
 export { checkCodecSupport } from "./utils/checkCodecSupport"
+export { validateTrackSource } from "./utils/validateTrackSource"
+export type { SourceValidationResult } from "./utils/validateTrackSource"
 export { isIOS, isMobileDevice, defaultShowVolume } from "./utils/device"
 export {
     extractPalette,
@@ -225,6 +227,8 @@ export {
     AudioSessionProvider,
     useAudioSession,
 } from "./session/AudioSessionContext"
+export { serializeSession, deserializeSession } from "./session/sessionSerializer"
+export type { SerializedSession } from "./session/sessionSerializer"
 export { FullCardPlayer } from "./skins/FullCardPlayer"
 export { VaultRowPlayer } from "./skins/VaultRowPlayer"
 export { StickyBottomPlayer } from "./skins/StickyBottomPlayer"

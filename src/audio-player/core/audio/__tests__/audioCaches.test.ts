@@ -81,6 +81,64 @@ describe("LRUAudioCache", () => {
         expect(cache.get("track-8.mp3")).not.toBeNull()
         expect(cache.get("track-19.mp3")).not.toBeNull()
     })
+
+    it("should track stats and lruOrder correctly", () => {
+        const cache = new LRUAudioCache(3)
+        const dummyBuffer1 = { length: 44100, numberOfChannels: 2 } as AudioBuffer
+        const dummyBuffer2 = { length: 88200, numberOfChannels: 2 } as AudioBuffer
+        
+        cache.set("a", dummyBuffer1)
+        cache.set("b", dummyBuffer2)
+        
+        const stats = cache.getStats()
+        expect(stats.decodedBufferCount).toBe(2)
+        expect(stats.lruOrder).toEqual(["a", "b"])
+        // approx bytes = length * channels * 4
+        expect(stats.decodedBufferBytes).toBe(44100 * 2 * 4 + 88200 * 2 * 4)
+    })
+
+    it("should update lruOrder on get", () => {
+        const cache = new LRUAudioCache(3)
+        const dummyBuffer = { length: 1, numberOfChannels: 1 } as AudioBuffer
+        
+        cache.set("a", dummyBuffer)
+        cache.set("b", dummyBuffer)
+        cache.set("c", dummyBuffer)
+        
+        expect(cache.getStats().lruOrder).toEqual(["a", "b", "c"])
+        
+        cache.get("a")
+        expect(cache.getStats().lruOrder).toEqual(["b", "c", "a"])
+    })
+
+    it("should setMaxSize and enforce immediately", () => {
+        const cache = new LRUAudioCache(3)
+        const dummyBuffer = { length: 1, numberOfChannels: 1 } as AudioBuffer
+        
+        cache.set("a", dummyBuffer)
+        cache.set("b", dummyBuffer)
+        cache.set("c", dummyBuffer)
+        
+        cache.setMaxSize(1)
+        expect(cache.getStats().decodedBufferCount).toBe(1)
+        expect(cache.getStats().lruOrder).toEqual(["c"])
+    })
+
+    it("should prune unused buffers but keep requested recent count", () => {
+        const cache = new LRUAudioCache(5)
+        const dummyBuffer = { length: 1, numberOfChannels: 1 } as AudioBuffer
+        
+        cache.set("a", dummyBuffer)
+        cache.set("b", dummyBuffer) // old, should be evicted
+        cache.set("c", dummyBuffer) // active queue (kept)
+        cache.set("d", dummyBuffer) // recent 2
+        cache.set("e", dummyBuffer) // recent 1
+        
+        cache.prune(["c"], 2)
+        
+        const stats = cache.getStats()
+        expect(stats.lruOrder).toEqual(["c", "d", "e"])
+    })
 })
 
 describe("AudioStorageCache", () => {
@@ -154,6 +212,22 @@ describe("HTML5AudioPool", () => {
         expect(audio.removeAttribute).toHaveBeenCalledWith("src")
         expect(audio.load).toHaveBeenCalled()
 
+    })
+
+    it("should track stats correctly", () => {
+        Object.defineProperty(globalThis, "Audio", {
+            configurable: true,
+            writable: true,
+            value: vi.fn(),
+        })
+        const pool = new HTML5AudioPool(3)
+        expect(pool.getStats().preloadElementCount).toBe(0)
+        
+        pool.acquire()
+        expect(pool.getStats().preloadElementCount).toBe(1)
+        
+        pool.acquire()
+        expect(pool.getStats().preloadElementCount).toBe(2)
     })
 })
 
