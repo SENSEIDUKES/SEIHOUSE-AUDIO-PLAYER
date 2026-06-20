@@ -93,10 +93,16 @@ const cueActionSchema = z.discriminatedUnion("command", [
 const cueEventSchema = z.object({
     id: z.string().optional().transform(val => val || `cue-${Math.random().toString(36).slice(2, 9)}`),
     trigger: cueTriggerSchema,
-    actions: z.array(cueActionSchema).catch((ctx) => {
-        console.warn("SAP Cues: Failed to parse actions for a cue, ignoring invalid actions.", ctx.error)
-        return []
-    }),
+    actions: z.array(
+        z.any().transform((val) => {
+            const parsed = cueActionSchema.safeParse(val)
+            if (!parsed.success) {
+                console.warn("SAP Cues: Ignoring invalid action:", parsed.error)
+                return null
+            }
+            return parsed.data
+        })
+    ).transform(actions => actions.filter((a): a is z.infer<typeof cueActionSchema> => a !== null)),
     replayable: z.boolean().optional(),
     fireOnSeek: z.boolean().optional(),
 })

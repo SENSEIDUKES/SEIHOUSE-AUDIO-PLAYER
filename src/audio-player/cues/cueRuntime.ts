@@ -8,6 +8,7 @@ export class CueRuntime {
     private cueMap = new Map<string, CueEvent>()
     private triggerMap = new Map<string, CueEvent[]>()
     private lastTime = 0
+    private activeSprites = new Map<string, string[]>()
 
     constructor(context: PluginPlayerContext, manifest: CueManifest) {
         this.context = context
@@ -50,10 +51,17 @@ export class CueRuntime {
     reset() {
         this.firedCueIds.clear()
         this.lastTime = 0
+        if (this.context.sounds) {
+            for (const ids of this.activeSprites.values()) {
+                for (const id of ids) {
+                    this.context.sounds.stopSprite(id)
+                }
+            }
+        }
+        this.activeSprites.clear()
     }
 
-    handleTimeUpdate(currentTime: number) {
-        const isSeeking = Math.abs(currentTime - this.lastTime) > 1.0
+    handleTimeUpdate(currentTime: number, isSeeking = false) {
 
         for (const cue of this.timeCues) {
             if (cue.trigger.kind !== "time") continue
@@ -112,20 +120,51 @@ export class CueRuntime {
             try {
                 switch (action.command) {
                     case "sprite.play":
-                        this.context.sounds?.playSprite(action.clip, {
-                            loop: action.loop,
-                            volume: action.volume,
-                        })
+                        if (this.context.sounds) {
+                            const id = this.context.sounds.playSprite(action.clip, {
+                                loop: action.loop,
+                                volume: action.volume,
+                            })
+                            if (id) {
+                                const key = `${action.pack || "default"}:${action.clip}`
+                                if (!this.activeSprites.has(key)) {
+                                    this.activeSprites.set(key, [])
+                                }
+                                this.activeSprites.get(key)!.push(id)
+                            }
+                        }
                         break
                     case "sprite.stop":
-                        // If no clip is specified, stop everything
-                        if (action.clip) {
-                            // The engine doesn't expose a specific clip stop easily, 
-                            // but this is a placeholder if we expand AudioSpriteEngine
+                        if (this.context.sounds) {
+                            if (action.clip) {
+                                const key = `${action.pack || "default"}:${action.clip}`
+                                const ids = this.activeSprites.get(key)
+                                if (ids) {
+                                    for (const id of ids) {
+                                        this.context.sounds.stopSprite(id)
+                                    }
+                                    this.activeSprites.delete(key)
+                                }
+                            } else {
+                                for (const ids of this.activeSprites.values()) {
+                                    for (const id of ids) {
+                                        this.context.sounds.stopSprite(id)
+                                    }
+                                }
+                                this.activeSprites.clear()
+                            }
                         }
                         break
                     case "sprite.fade":
-                        // Placeholder for sprite fading
+                        if (this.context.sounds) {
+                            const key = `${action.pack || "default"}:${action.clip}`
+                            const ids = this.activeSprites.get(key)
+                            if (ids) {
+                                for (const id of ids) {
+                                    this.context.sounds.fadeSprite(id, action.volume, action.durationMs)
+                                } 
+                            }
+                        }
                         break
                     case "player.seek":
                         this.context.getEngine().seek(action.time)

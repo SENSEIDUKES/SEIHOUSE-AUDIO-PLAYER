@@ -62,7 +62,12 @@ export class CueManifestPlugin implements AudioPlayerPlugin {
         } else if (track.cueManifestUrl) {
             this.abortController = new AbortController()
             fetch(track.cueManifestUrl, { signal: this.abortController.signal })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Failed to fetch cue manifest: ${res.status} ${res.statusText}`)
+                    }
+                    return res.json()
+                })
                 .then(data => {
                     const manifest = validateCueManifest(data)
                     if (manifest && this.context) {
@@ -79,13 +84,13 @@ export class CueManifestPlugin implements AudioPlayerPlugin {
 
     onTimeUpdate(position: number): PluginHookResult {
         if (this.runtime && this.context) {
-            this.runtime.handleTimeUpdate(position)
+            this.runtime.handleTimeUpdate(position, false)
         }
     }
 
     onSeek(position: number): PluginHookResult {
         if (this.runtime) {
-            this.runtime.handleTimeUpdate(position)
+            this.runtime.handleTimeUpdate(position, true)
         }
     }
 
