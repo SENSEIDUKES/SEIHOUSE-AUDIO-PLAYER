@@ -449,6 +449,39 @@ export interface SpatialAudioState {
     liteMode: boolean
 }
 
+export interface PreloadConfig {
+    /** Preload strategy. 'aggressive' preloads next 3 tracks. Default: 'next' */
+    strategy: 'none' | 'next' | 'aggressive'
+    /** Max concurrent preloads. Default: 2 */
+    maxConcurrent?: number
+    /** Skip preload on cellular networks. Default: false */
+    skipOnCellular?: boolean
+}
+
+export type PlayerEventType = 
+    | 'track-change'
+    | 'play'
+    | 'pause'
+    | 'queue-end'
+    | 'error'
+    | 'fallback-source'
+
+export interface PlayerEventPayload {
+    'track-change': { track: Track | null, previousIndex: number }
+    'play': { track: Track, currentTime: number }
+    'pause': { track: Track | null, currentTime: number }
+    'queue-end': { reason: 'normal' | 'repeat-off' }
+    'error': { error: string, track: Track | null }
+    'fallback-source': FallbackSourceEvent
+}
+
+export interface CacheStats {
+    decodedBufferCount: number
+    decodedBufferBytes: number
+    preloadElementCount: number
+    lruOrder: string[]  // sourceKeys
+}
+
 /**
  * The global audio session. A superset of `AudioPlayerEngine`: anything that
  * accepts an `AudioPlayerEngine` (e.g. the presentational `ProgressBar` /
@@ -498,6 +531,21 @@ export interface SessionEngine extends AudioPlayerEngine {
     cycleRepeat: () => void
     /** Toggle Automix Lite crossfade transitions. */
     toggleAutomix: () => void
+    
+    /** Subscribe to player events. Returns unsubscribe function. */
+    subscribe: <T extends PlayerEventType>(
+        eventType: T,
+        handler: (payload: PlayerEventPayload[T]) => void
+    ) => () => void
+
+    /** Get cache statistics */
+    getCacheStats: () => CacheStats
+    
+    /** Clear decoded buffers not in current queue */
+    pruneAudioCache: (keepRecent?: number) => void
+    
+    /** Set max decoded buffer count (default: 10) */
+    setCacheLimit: (maxBuffers: number) => void
 }
 
 /** Props for `AudioSessionProvider`. */
@@ -521,4 +569,6 @@ export interface AudioSessionProviderProps {
     audioBackend?: AudioBackendKind
     /** Fired when the engine switches from a failed source to a fallback URL. */
     onFallbackSource?: (event: FallbackSourceEvent) => void
+    /** Preload behavior configuration. */
+    preloadConfig?: PreloadConfig
 }

@@ -1,25 +1,75 @@
 /** Shared decoded-buffer LRU cache for Web Audio playback. */
 export class LRUAudioCache {
     private cache = new Map<string, AudioBuffer>()
+    private order: string[] = []
 
     constructor(private maxSize = 12) {}
+
+    getStats() {
+        let size = 0
+        for (const buffer of this.cache.values()) {
+            // approx bytes: length * channels * 32-bit float (4 bytes)
+            size += buffer.length * buffer.numberOfChannels * 4
+        }
+        return {
+            decodedBufferCount: this.cache.size,
+            decodedBufferBytes: size,
+            lruOrder: [...this.order]
+        }
+    }
+
+    setMaxSize(size: number) {
+        this.maxSize = size
+        this.enforceSize()
+    }
+
+    prune(keepKeys: string[], keepRecent: number = 0) {
+        const toKeep = new Set(keepKeys)
+        let recentKept = 0
+        
+        for (let i = this.order.length - 1; i >= 0; i--) {
+            const key = this.order[i]
+            if (toKeep.has(key)) continue
+            
+            if (recentKept < keepRecent) {
+                recentKept++
+                continue
+            }
+            
+            this.cache.delete(key)
+            this.order.splice(i, 1)
+        }
+    }
+
+    private enforceSize() {
+        while (this.cache.size > this.maxSize && this.order.length > 0) {
+            const oldestKey = this.order.shift()!
+            this.cache.delete(oldestKey)
+        }
+    }
 
     get(url: string): AudioBuffer | null {
         const buffer = this.cache.get(url)
         if (!buffer) return null
-        this.cache.delete(url)
-        this.cache.set(url, buffer)
+        
+        const index = this.order.indexOf(url)
+        if (index > -1) {
+            this.order.splice(index, 1)
+        }
+        this.order.push(url)
+        
         return buffer
     }
 
     set(url: string, buffer: AudioBuffer): void {
         if (this.cache.has(url)) {
             this.cache.delete(url)
-        } else if (this.cache.size >= this.maxSize) {
-            const oldestKey = this.cache.keys().next().value
-            if (oldestKey !== undefined) this.cache.delete(oldestKey)
+            const index = this.order.indexOf(url)
+            if (index > -1) this.order.splice(index, 1)
         }
+        this.order.push(url)
         this.cache.set(url, buffer)
+        this.enforceSize()
     }
 
     has(url: string): boolean {
@@ -28,10 +78,13 @@ export class LRUAudioCache {
 
     delete(url: string): void {
         this.cache.delete(url)
+        const index = this.order.indexOf(url)
+        if (index > -1) this.order.splice(index, 1)
     }
 
     clear(): void {
         this.cache.clear()
+        this.order = []
     }
 }
 
@@ -90,6 +143,10 @@ export class HTML5AudioPool {
     private pool: HTMLAudioElement[] = []
 
     constructor(private maxSize = 5) {}
+
+    getStats() {
+        return { preloadElementCount: this.pool.length }
+    }
 
     acquire(): HTMLAudioElement {
         let audio = this.pool.find(
