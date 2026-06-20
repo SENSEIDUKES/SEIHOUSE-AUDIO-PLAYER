@@ -5,10 +5,7 @@ import {
     useState,
 } from "react"
 import { FixedSizeList } from "react-window"
-// @ts-ignore
-import { AutoSizer as _AutoSizer } from "react-virtualized-auto-sizer"
-
-const AutoSizer: any = _AutoSizer
+import { AutoSizer } from "react-virtualized-auto-sizer"
 import type { Track } from "../types"
 import { trackKey } from "../utils/trackKey"
 
@@ -401,33 +398,31 @@ export function QueueDrawer({
                     aria-label="Queue tracks"
                     style={{ touchAction: "pan-y" }}
                 >
-                    <AutoSizer>
-                        {({ height, width }: { height: number; width: number }) => (
-                            <FixedSizeList
-                                outerRef={drag.setContainerRef}
-                                height={height}
-                                width={width}
-                                itemCount={visibleQueue.length}
-                                itemSize={56}
-                                itemData={{
-                                    visibleQueue,
-                                    upcomingStart,
-                                    currentIndex,
-                                    drag,
-                                    onPlayTrack,
-                                    onRemove,
-                                    isPlaying,
-                                }}
-                                itemKey={(index, data) => {
-                                    const actualIndex = data.upcomingStart + index
-                                    const track = data.visibleQueue[index]
-                                    return actualIndex + ":" + trackKey(track)
-                                }}
-                            >
-                                {QueueRowWrapper}
-                            </FixedSizeList>
-                        )}
-                    </AutoSizer>
+                    <AutoSizer renderProp={({ height, width }) => (
+                        <FixedSizeList
+                            outerRef={drag.setContainerRef}
+                            height={height ?? 0}
+                            width={width ?? 0}
+                            itemCount={visibleQueue.length}
+                            itemSize={56}
+                            itemData={{
+                                visibleQueue,
+                                upcomingStart,
+                                currentIndex,
+                                drag,
+                                onPlayTrack,
+                                onRemove,
+                                isPlaying,
+                            }}
+                            itemKey={(index, data) => {
+                                const actualIndex = data.upcomingStart + index
+                                const track = data.visibleQueue[index]
+                                return actualIndex + ":" + trackKey(track)
+                            }}
+                        >
+                            {QueueRowWrapper}
+                        </FixedSizeList>
+                    )} />
                 </div>
 
                 {/* Empty state */}
