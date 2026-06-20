@@ -153,8 +153,16 @@ export class AudioSpriteEngine {
     }
 
     async ready(): Promise<void> {
-        // Resolves once the in-flight load settles; never rejects (see `load`).
-        await this.loadPromise
+        // Resolves once the latest in-flight load settles; never rejects (see
+        // `load`). A superseding `load()` aborts the one we're awaiting (its
+        // error is swallowed), so follow the chain to the newest promise rather
+        // than resolving early while a fresh buffer is still decoding.
+        let pending = this.loadPromise
+        while (pending) {
+            await pending
+            if (pending === this.loadPromise) break
+            pending = this.loadPromise
+        }
     }
 
     play(

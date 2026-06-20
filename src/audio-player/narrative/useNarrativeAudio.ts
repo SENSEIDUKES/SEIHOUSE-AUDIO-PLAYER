@@ -125,6 +125,12 @@ export function useNarrativeAudio(
         clamp01(ambienceVolumeProp)
     )
 
+    // Keep local ambience level in sync when the host drives it via props, so it
+    // behaves like the narration volume passthrough below (host wins on change).
+    useEffect(() => {
+        setAmbienceVolumeState(clamp01(ambienceVolumeProp))
+    }, [ambienceVolumeProp])
+
     const getEngine = useCallback((): AudioSpriteEngine => {
         if (!engineRef.current) engineRef.current = createAudioSpriteEngine()
         return engineRef.current
@@ -183,14 +189,21 @@ export function useNarrativeAudio(
                 if (next) {
                     ambienceIdRef.current = next
                     engine.fade(next, liveAmbienceTarget, crossfadeMs)
-                    if (previous) engine.fadeOut(previous, crossfadeMs)
+                } else {
+                    ambienceIdRef.current = null
                 }
+                // Retire the old loop unconditionally — even if the new clip is
+                // missing from the manifest (play returned null), the prior
+                // scene's ambience must not keep looping under the new scene.
+                if (previous) engine.fadeOut(previous, crossfadeMs)
             } else if (ambienceIdRef.current) {
                 engine.fadeOut(ambienceIdRef.current, crossfadeMs)
                 ambienceIdRef.current = null
             }
 
-            // (Re)trigger the FX layer for this scene.
+            // (Re)trigger the FX layer for this scene, starting at the live
+            // (possibly ducked) target so it matches the ambience level when
+            // narration is already playing.
             if (fxIdRef.current) {
                 engine.stop(fxIdRef.current)
                 fxIdRef.current = null
@@ -198,7 +211,7 @@ export function useNarrativeAudio(
             if (fxClip) {
                 fxIdRef.current = engine.play(fxClip, {
                     loop: fxLoop,
-                    volume: targetAmbience,
+                    volume: liveAmbienceTarget,
                 })
             }
         }
@@ -215,9 +228,15 @@ export function useNarrativeAudio(
     // ---- Live ducking + ambience level -----------------------------------
     useEffect(() => {
         const engine = engineRef.current
-        if (!engine || !ambienceIdRef.current) return
-        // Short fade so ducking feels responsive but not abrupt.
-        engine.fade(ambienceIdRef.current, liveAmbienceTarget, 350)
+        if (!engine) return
+        // Short fade so ducking feels responsive but not abrupt. Both layers
+        // track the same level so a looping FX bed ducks/adjusts with ambience.
+        if (ambienceIdRef.current) {
+            engine.fade(ambienceIdRef.current, liveAmbienceTarget, 350)
+        }
+        if (fxIdRef.current) {
+            engine.fade(fxIdRef.current, liveAmbienceTarget, 350)
+        }
     }, [liveAmbienceTarget])
 
     // ---- Narration volume passthrough -------------------------------------
