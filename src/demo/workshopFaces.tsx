@@ -6,6 +6,7 @@ import {
     StickyBottomPlayer,
     MiniSidebarPlayer,
     SeaCardPlayer,
+    NarrativeFace,
 } from "../audio-player"
 import type {
     ArcAction,
@@ -28,6 +29,7 @@ export type WorkshopFaceId =
     | "mini-sidebar"
     | "vault-row"
     | "sea-card"
+    | "narrative"
 
 /** Control groups the panel can render; a face opts into the ones that apply. */
 export type WorkshopControlGroup =
@@ -280,6 +282,26 @@ export const WORKSHOP_FACES: readonly WorkshopFaceDefinition[] = [
                     />
                 ))}
             </div>
+        ),
+    },
+    {
+        id: "narrative",
+        label: "NarrativeFace",
+        description:
+            "Faceless story/reader surface — soundscape indicator, play/pause, mute, and ambience + voice levels. No artwork or music chrome; embeds as a tiny inline overlay. Drives narration on the shared session.",
+        playerFace: "narrative",
+        sessionBased: true,
+        controls: ["theme"],
+        render: ({ settings }) => (
+            <NarrativeFace
+                chapterId="ch-01"
+                sceneMood="rain"
+                ambientProfile="rain-loop"
+                intensity={0.6}
+                showExpand
+                onExpand={() => console.log("open soundscape settings")}
+                {...settings.theme}
+            />
         ),
     },
 ]

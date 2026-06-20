@@ -52,6 +52,8 @@ export interface AudioSpriteInstanceInfo {
 type AudioSpriteInstance = AudioSpriteInstanceInfo & {
     source: AudioBufferSourceNode
     gain: GainNode
+    /** Pending stop scheduled by `fadeOut`, cleared if the instance is retargeted. */
+    fadeStopTimer?: ReturnType<typeof setTimeout>
 }
 
 let nextInstanceId = 0
@@ -77,6 +79,12 @@ export class AudioSpriteEngine {
     private loadPromise: Promise<void> | null = null
     private instances = new Map<AudioSpriteInstanceId, AudioSpriteInstance>()
     private generation = 0
+    /**
+     * Desired master gain for the whole sprite layer (the "ambience volume"
+     * control points here). Stored so it survives context recreation, since
+     * `ensureContext` builds a fresh `output` GainNode at unity otherwise.
+     */
+    private masterVolume = 1
 
     private ensureContext(): AudioContext {
         if (this.ctx && this.ctx.state !== "closed") return this.ctx
@@ -84,8 +92,24 @@ export class AudioSpriteEngine {
         if (!Ctor) throw new Error("Web Audio API unavailable for SAP sprites.")
         this.ctx = new Ctor()
         this.output = this.ctx.createGain()
+        this.output.gain.value = this.masterVolume
         this.output.connect(this.ctx.destination)
         return this.ctx
+    }
+
+    /**
+     * Set the master output level (0..1) for the whole sprite layer. Persisted
+     * across context recreation so a later (re)load doesn't silently reset it.
+     */
+    setMasterVolume(value: number): void {
+        this.masterVolume = clamp01(value)
+        if (this.output && this.ctx) {
+            this.output.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime)
+        }
+    }
+
+    getMasterVolume(): number {
+        return this.masterVolume
     }
 
     async load(manifest: AudioSpriteManifest): Promise<void> {
@@ -101,7 +125,7 @@ export class AudioSpriteEngine {
 
         const abort = new AbortController()
         this.loadAbort = abort
-        this.loadPromise = (async () => {
+        const work = (async () => {
             const response = await fetch(src, { signal: abort.signal })
             if (!response.ok) {
                 throw new Error(`Audio sprite pack failed to load: ${response.status}`)
@@ -112,15 +136,33 @@ export class AudioSpriteEngine {
             this.buffer = decoded
         })()
 
+        // `ready()` and any internal awaiters consume a never-rejecting view of
+        // the load: an aborted/failed load (e.g. a superseding `load()` call, or
+        // a bad URL) must not surface as an unhandled promise rejection. Direct
+        // `load()` callers still see the real error below.
+        this.loadPromise = work.then(
+            () => {},
+            () => {}
+        )
+
         try {
-            await this.loadPromise
+            await work
         } finally {
             if (this.loadAbort === abort) this.loadAbort = null
         }
     }
 
     async ready(): Promise<void> {
-        await this.loadPromise
+        // Resolves once the latest in-flight load settles; never rejects (see
+        // `load`). A superseding `load()` aborts the one we're awaiting (its
+        // error is swallowed), so follow the chain to the newest promise rather
+        // than resolving early while a fresh buffer is still decoding.
+        let pending = this.loadPromise
+        while (pending) {
+            await pending
+            if (pending === this.loadPromise) break
+            pending = this.loadPromise
+        }
     }
 
     play(
@@ -191,6 +233,9 @@ export class AudioSpriteEngine {
     fade(id: AudioSpriteInstanceId, toVolume: number, durationMs: number): void {
         const instance = this.instances.get(id)
         if (!instance || !this.ctx) return
+        // Retargeting the gain cancels any pending fade-out stop: the caller
+        // wants this instance to keep playing at the new level.
+        this.clearFadeStop(instance)
         const gain = instance.gain.gain
         const now = this.ctx.currentTime
         const duration = Math.max(0, durationMs) / 1000
@@ -199,6 +244,31 @@ export class AudioSpriteEngine {
         gain.setValueAtTime(gain.value, now)
         gain.linearRampToValueAtTime(target, now + duration)
         instance.volume = target
+    }
+
+    /**
+     * Ramp an instance to silence and then stop it. Unlike `fade(id, 0, ms)`,
+     * this releases the underlying source when the ramp completes — essential
+     * for looping clips, which otherwise keep running silently forever (a leak
+     * that accumulates one node per ambience/mood crossfade).
+     */
+    fadeOut(id: AudioSpriteInstanceId, durationMs: number): void {
+        const instance = this.instances.get(id)
+        if (!instance) return
+        this.fade(id, 0, durationMs)
+        const delay = Math.max(0, durationMs)
+        instance.fadeStopTimer = setTimeout(() => {
+            // Only stop if this exact instance is still live for the id (a
+            // re-trigger of the same id would have replaced/cleared it).
+            if (this.instances.get(id) === instance) this.stop(id)
+        }, delay)
+    }
+
+    private clearFadeStop(instance: AudioSpriteInstance): void {
+        if (instance.fadeStopTimer !== undefined) {
+            clearTimeout(instance.fadeStopTimer)
+            instance.fadeStopTimer = undefined
+        }
     }
 
     stopAll(): void {
@@ -233,6 +303,7 @@ export class AudioSpriteEngine {
     private removeInstance(id: AudioSpriteInstanceId): void {
         const instance = this.instances.get(id)
         if (!instance) return
+        this.clearFadeStop(instance)
         this.instances.delete(id)
         try {
             instance.source.disconnect()

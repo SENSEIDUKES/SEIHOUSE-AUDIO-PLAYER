@@ -121,4 +121,75 @@ describe("AudioSpriteEngine", () => {
         expect(context.sources[0].loopEnd).toBe(3.5)
         expect(context.sources[0].start).toHaveBeenCalledWith(0, 2, undefined)
     })
+
+    it("fadeOut ramps to zero then stops the (looping) instance", async () => {
+        vi.useFakeTimers()
+        const engine = new AudioSpriteEngine()
+        await engine.load({
+            src: "/sprites/ambience.mp3",
+            clips: { bed: { offset: 0, duration: 2, loop: true } },
+        })
+
+        const id = engine.play("bed")!
+        engine.fadeOut(id, 300)
+
+        // Ramps to silence immediately, but the source is still alive mid-fade.
+        expect(context.gains[1].gain.linearRampToValueAtTime).toHaveBeenCalledWith(0, 10.3)
+        expect(engine.getActiveInstances()).toHaveLength(1)
+
+        // Only once the ramp completes is the looping source released (no leak).
+        vi.advanceTimersByTime(300)
+        expect(context.sources[0].stop).toHaveBeenCalledTimes(1)
+        expect(engine.getActiveInstances()).toEqual([])
+        vi.useRealTimers()
+    })
+
+    it("re-targeting an instance with fade cancels a pending fadeOut stop", async () => {
+        vi.useFakeTimers()
+        const engine = new AudioSpriteEngine()
+        await engine.load({
+            src: "/sprites/ambience.mp3",
+            clips: { bed: { offset: 0, duration: 2, loop: true } },
+        })
+
+        const id = engine.play("bed")!
+        engine.fadeOut(id, 300)
+        engine.fade(id, 0.8, 100) // duck back up before the stop fires
+
+        vi.advanceTimersByTime(300)
+        expect(context.sources[0].stop).not.toHaveBeenCalled()
+        expect(engine.getActiveInstances()).toHaveLength(1)
+        vi.useRealTimers()
+    })
+
+    it("applies and persists master volume across context recreation", async () => {
+        const engine = new AudioSpriteEngine()
+        // Set before any context exists — it must survive the lazy creation.
+        engine.setMasterVolume(0.3)
+        await engine.load({
+            src: "/sprites/ambience.mp3",
+            clips: { a: { offset: 0, duration: 1 } },
+        })
+
+        // The output gain is the first gain the context creates.
+        expect(context.gains[0].gain.value).toBe(0.3)
+        expect(engine.getMasterVolume()).toBe(0.3)
+
+        engine.setMasterVolume(0.5)
+        expect(context.gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.5, 10)
+    })
+
+    it("surfaces load failures to direct callers but never rejects ready()", async () => {
+        globalThis.fetch = vi.fn(async () => ({
+            ok: false,
+            status: 500,
+        })) as unknown as typeof fetch
+
+        const engine = new AudioSpriteEngine()
+        await expect(
+            engine.load({ src: "/sprites/missing.mp3", clips: {} })
+        ).rejects.toThrow()
+        // ready() consumes a never-rejecting view, so no unhandled rejection.
+        await expect(engine.ready()).resolves.toBeUndefined()
+    })
 })

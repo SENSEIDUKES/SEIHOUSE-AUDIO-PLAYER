@@ -15,6 +15,7 @@ export type PlayerFace =
     | "stickyBottom" // StickyBottomPlayer — persistent bottom bar
     | "vaultRow" // VaultRowPlayer — slim list row
     | "portable" // default AudioPlayer — standalone portable player
+    | "narrative" // NarrativeFace — faceless narration/ambience surface for reader apps
 
 /**
  * The two player families. Every face belongs to exactly one, and inherits that
@@ -28,8 +29,14 @@ export type PlayerFace =
  *   button. No SEICanvas/waveform, no per-instance scrubber (the stickyBottom
  *   master owns the shared scrubber for the family). The list/bar/widget faces
  *   (miniSidebar, stickyBottom, vaultRow, and a future queueRow).
+ * - `narrative` — a "faceless" control surface for story/reader apps. It keeps
+ *   the full SAP audio engine underneath (narration on the shared session,
+ *   ambience/FX on the sprite layer) but exposes only story-native controls:
+ *   a soundscape indicator, play/pause, mute, and ambience/narration volume.
+ *   Every music-player capability is off (no SEICanvas, scrubber, waveform,
+ *   contextual/action menus, or hero), so it embeds as a tiny inline overlay.
  */
-export type PlayerFamily = "primary" | "compact"
+export type PlayerFamily = "primary" | "compact" | "narrative"
 
 export type ScrubberDensity = "compact" | "standard" | "expanded"
 
@@ -132,6 +139,19 @@ export const FAMILY_DEFAULTS: Record<PlayerFamily, FamilyCapabilityDefaults> = {
         preferredCanvasPlacement: "none",
         scrubberDensity: "compact",
     },
+    narrative: {
+        // A faceless surface: no music-player zones at all. The face renders its
+        // own minimal story controls and never mounts a canvas, scrubber,
+        // waveform, action button, or radial/contextual menu.
+        supportsSEICanvas: false,
+        supportsAction: false,
+        supportsScrubberCanvas: false,
+        supportsWaveform: false,
+        supportsContextualActions: false,
+        supportsHeroCollapse: false,
+        preferredCanvasPlacement: "none",
+        scrubberDensity: "compact",
+    },
 }
 
 /** Each face: its family plus the deltas it overrides from the family default. */
@@ -168,6 +188,8 @@ const FACE_DEFINITIONS: Record<
         supportsScrubberCanvas: true,
     },
     vaultRow: { family: "compact" }, // pure compact defaults (no own scrubber)
+    // ---- NarrativeFace family --------------------------------------------
+    narrative: { family: "narrative" }, // pure narrative defaults (faceless)
 }
 
 export const PLAYER_FACE_CAPABILITIES: Record<PlayerFace, PlayerFaceCapability> =

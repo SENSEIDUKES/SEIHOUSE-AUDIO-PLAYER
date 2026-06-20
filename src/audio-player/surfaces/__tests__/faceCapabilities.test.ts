@@ -21,7 +21,11 @@ const ALL_FACES: PlayerFace[] = [
     "stickyBottom",
     "vaultRow",
     "portable",
+    "narrative",
 ]
+
+/** The music-player faces — every face except the faceless narrative surface. */
+const MUSIC_FACES: PlayerFace[] = ALL_FACES.filter((f) => f !== "narrative")
 
 describe("PLAYER_FACE_CAPABILITIES", () => {
     it("declares an entry for every face", () => {
@@ -59,11 +63,22 @@ describe("PLAYER_FACE_CAPABILITIES", () => {
         expect(faceSupportsScrubberCanvas("vaultRow")).toBe(false)
     })
 
-    it("gives every face an action button (incl. the vault row)", () => {
-        for (const face of ALL_FACES) {
+    it("gives every music face an action button (incl. the vault row)", () => {
+        for (const face of MUSIC_FACES) {
             expect(faceSupportsAction(face)).toBe(true)
         }
         expect(faceSupportsAction("vaultRow")).toBe(true)
+    })
+
+    it("models the narrative face as a faceless surface (every capability off)", () => {
+        expect(getFaceFamily("narrative")).toBe("narrative")
+        expect(faceSupportsAction("narrative")).toBe(false)
+        expect(faceSupportsSEICanvas("narrative")).toBe(false)
+        expect(faceSupportsScrubberCanvas("narrative")).toBe(false)
+        expect(faceSupportsWaveform("narrative")).toBe(false)
+        expect(faceSupportsContextualActions("narrative")).toBe(false)
+        expect(faceSupportsHeroCollapse("narrative")).toBe(false)
+        expect(getPreferredCanvasPlacement("narrative")).toBe("none")
     })
 
     it("enables the contextual radial menu only on faces that render it", () => {

@@ -57,6 +57,19 @@ export {
     createWaveformPlugin,
 } from "./plugins/WaveformPlugin"
 export {
+    CueManifestPlugin,
+    createCueManifestPlugin,
+} from "./cues/CueManifestPlugin"
+export { validateCueManifest } from "./cues/cueManifestSchema"
+export { CueRuntime } from "./cues/cueRuntime"
+export {
+    useNarrativeCueController,
+} from "./cues/useNarrativeCueController"
+export type {
+    UseNarrativeCueControllerOptions,
+    NarrativeCueControllerState,
+} from "./cues/useNarrativeCueController"
+export {
     ensureTrackAnalysis,
     getTrackTrims,
 } from "./automix/silenceAnalysis"
@@ -234,6 +247,16 @@ export { VaultRowPlayer } from "./skins/VaultRowPlayer"
 export { StickyBottomPlayer } from "./skins/StickyBottomPlayer"
 export { MiniSidebarPlayer } from "./skins/MiniSidebarPlayer"
 export { SeaCardPlayer } from "./skins/SeaCardPlayer"
+export { NarrativeFace } from "./skins/NarrativeFace"
+// Narrative family: the headless layer orchestrator behind NarrativeFace,
+// exposed so reader apps can drive narration/ambience/FX without the UI.
+export { useNarrativeAudio } from "./narrative/useNarrativeAudio"
+export type {
+    UseNarrativeAudioOptions,
+    NarrativeAudioController,
+    NarrationState,
+    SoundscapeIndicatorState,
+} from "./narrative/useNarrativeAudio"
 export {
     VAULT_CATEGORY_META,
     getVaultCategoryMeta,
@@ -356,6 +379,11 @@ export type {
     SleepTimerState,
 } from "./plugins/SleepTimerPlugin"
 export type { WaveformPluginConfig } from "./plugins/WaveformPlugin"
+export type {
+    CueAction,
+    CueEvent,
+    CueManifest,
+} from "./cues/cueTypes"
 export {
     PluginRegistryProvider,
     usePluginRegistry,
@@ -463,3 +491,4 @@ export type { VaultRowPlayerProps } from "./skins/VaultRowPlayer"
 export type { StickyBottomPlayerProps } from "./skins/StickyBottomPlayer"
 export type { MiniSidebarPlayerProps } from "./skins/MiniSidebarPlayer"
 export type { SeaCardPlayerProps } from "./skins/SeaCardPlayer"
+export type { NarrativeFaceProps } from "./skins/NarrativeFace"
