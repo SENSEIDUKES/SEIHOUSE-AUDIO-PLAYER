@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import type { KeyboardEvent, ReactNode } from "react"
 import { createPortal } from "react-dom"
 import type { AudioPlayerTheme, RepeatMode } from "../types"
@@ -19,6 +19,7 @@ import {
 } from "../skins/icons"
 import { WorkspaceShell } from "./workspace/WorkspaceShell"
 import type { WorkspaceRoute } from "./workspace/workspaceRoutes"
+import { useAudioSession } from "../session/AudioSessionContext"
 import "./sap-controller.css"
 
 /* The SAP Controller: one shared, screen-level command sheet for the advanced
@@ -128,6 +129,68 @@ const CloseIcon = () => (
         <line x1="18" y1="6" x2="6" y2="18" />
     </svg>
 )
+
+function KaraokeLyrics({ lyrics }: { lyrics: string }) {
+    const { currentTime } = useAudioSession()
+    const parsed = useMemo(() => {
+        const lines = lyrics.split('\n')
+        const result: { time: number; text: string }[] = []
+        for (const line of lines) {
+            const match = line.match(/^\[(\d{2}):(\d{2}(?:\.\d{1,3})?)\](.*)/)
+            if (match) {
+                const m = parseInt(match[1], 10)
+                const s = parseFloat(match[2])
+                result.push({ time: m * 60 + s, text: match[3].trim() })
+            } else {
+                result.push({ time: -1, text: line })
+            }
+        }
+        return result
+    }, [lyrics])
+
+    const containerRef = useRef<HTMLDivElement>(null)
+    const isKaraoke = parsed.some((l) => l.time >= 0)
+
+    if (!isKaraoke) {
+        return <div className="sap-ctl__lyrics">{lyrics}</div>
+    }
+
+    let activeIndex = -1
+    for (let i = 0; i < parsed.length; i++) {
+        if (parsed[i].time >= 0 && currentTime >= parsed[i].time) {
+            activeIndex = i
+        }
+    }
+
+    useEffect(() => {
+        if (activeIndex >= 0 && containerRef.current) {
+            const container = containerRef.current
+            const el = container.children[activeIndex] as HTMLElement
+            if (el) {
+                const containerRect = container.getBoundingClientRect()
+                const elRect = el.getBoundingClientRect()
+                const relativeTop = elRect.top - containerRect.top + container.scrollTop
+                container.scrollTo({
+                    top: relativeTop - containerRect.height / 2 + elRect.height / 2,
+                    behavior: "smooth",
+                })
+            }
+        }
+    }, [activeIndex])
+
+    return (
+        <div className="sap-ctl__lyrics sap-ctl__lyrics--karaoke" ref={containerRef}>
+            {parsed.map((line, idx) => (
+                <div
+                    key={idx}
+                    className={`sap-ctl__lyric-line ${idx === activeIndex ? "sap-ctl__lyric-line--active" : ""}`}
+                >
+                    {line.text || '\u00A0'}
+                </div>
+            ))}
+        </div>
+    )
+}
 
 export function SAPController({
     open,
@@ -371,7 +434,7 @@ export function SAPController({
                                     </span>
                                 </button>
                                 {lyricsOpen && (
-                                    <div className="sap-ctl__lyrics">{info.lyrics}</div>
+                                    <KaraokeLyrics lyrics={info.lyrics} />
                                 )}
                             </>
                         )}

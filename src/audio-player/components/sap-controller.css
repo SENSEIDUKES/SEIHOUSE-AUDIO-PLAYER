@@ -224,6 +224,21 @@
     white-space: pre-wrap;
     max-height: 220px;
     overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.sap-ctl__lyric-line {
+    transition: opacity 0.3s var(--ap-spring), transform 0.3s var(--ap-spring), font-weight 0.3s var(--ap-spring);
+    opacity: 0.4;
+    transform: scale(0.98);
+    transform-origin: left center;
+}
+
+.sap-ctl__lyric-line--active {
+    opacity: 1;
+    font-weight: 700;
+    transform: scale(1);
+    color: var(--ap-text);
 }
 
 /* Plugins list (read-only for V1). */

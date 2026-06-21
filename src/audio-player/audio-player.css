@@ -18,6 +18,7 @@
        fallbacks below reproduce the original hardcoded look exactly. */
     --ap-glow-intensity: 1;
     --ap-btn-opacity-delta: 0%;
+    --ap-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     position: relative;
     width: 100%;
@@ -215,8 +216,8 @@
     -webkit-backdrop-filter: blur(10px) saturate(140%);
     backdrop-filter: blur(10px) saturate(140%);
     padding: 0;
-    transition: transform 0.12s ease, box-shadow 0.18s ease, background-color 0.18s ease,
-        border-color 0.18s ease;
+    transition: transform 0.12s var(--ap-spring), box-shadow 0.18s var(--ap-spring), background-color 0.18s var(--ap-spring),
+        border-color 0.18s var(--ap-spring);
 }
 .ap-menu__btn:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--ap-accent) calc(28% + var(--ap-btn-opacity-delta, 0%)), var(--ap-bg));
@@ -321,7 +322,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
     transform: translate(-50%, -50%);
     pointer-events: none;
-    transition: transform 0.15s ease;
+    transition: transform 0.15s var(--ap-spring);
 }
 .ap-progress:hover .ap-progress__thumb,
 .ap-progress--seeking .ap-progress__thumb {
@@ -407,8 +408,11 @@
     cursor: pointer;
     flex-shrink: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: transform 0.12s ease, box-shadow 0.18s ease,
-        background-color 0.18s ease, border-color 0.18s ease;
+    transition: transform 0.12s var(--ap-spring), box-shadow 0.18s var(--ap-spring),
+        background-color 0.18s var(--ap-spring), border-color 0.18s var(--ap-spring);
+}
+.ap-btn svg {
+    animation: ap-pop-in 0.35s var(--ap-spring);
 }
 .ap-btn:disabled {
     cursor: not-allowed;
@@ -528,8 +532,11 @@
         0 1px 4px rgba(0, 0, 0, 0.16);
     -webkit-backdrop-filter: blur(8px) saturate(130%);
     backdrop-filter: blur(8px) saturate(130%);
-    transition: transform 0.12s ease, box-shadow 0.18s ease, background-color 0.18s ease,
-        border-color 0.18s ease;
+    transition: transform 0.12s var(--ap-spring), box-shadow 0.18s var(--ap-spring), background-color 0.18s var(--ap-spring),
+        border-color 0.18s var(--ap-spring);
+}
+.ap-icon-btn svg {
+    animation: ap-pop-in 0.35s var(--ap-spring);
 }
 .ap-icon-btn:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--ap-text, #fff) calc(18% + var(--ap-btn-opacity-delta, 0%)), transparent);
@@ -719,7 +726,7 @@
 /* ----------------------------- Animations ----------------------------- */
 
 .ap-tap {
-    transition: transform 0.1s ease;
+    transition: transform 0.1s var(--ap-spring);
 }
 .ap-tap:active:not(:disabled) {
     transform: scale(0.92);
@@ -783,6 +790,16 @@
     50% {
         opacity: 1;
         transform: scaleY(1);
+    }
+}
+@keyframes ap-pop-in {
+    0% {
+        transform: scale(0.6) rotate(-10deg);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
     }
 }
 
